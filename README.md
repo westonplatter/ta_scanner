@@ -39,3 +39,10 @@ This repo will feel like a mono repo to many, and focuses on
 - exposing market data
 - running multi-variate simulations
 - reporting results
+
+
+## Releasing
+
+python setup.py sdist bdist_wheel
+twine upload dist/*
+

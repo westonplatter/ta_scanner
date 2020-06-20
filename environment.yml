@@ -1,0 +1,41 @@
+name: ta_scanner
+
+channels:
+    - default
+
+dependencies:
+    - python=3.7
+    #- boto3
+    #- celery
+    #- click
+    #- flask
+    #- flask-sqlalchemy
+    #- gunicorn
+    #- pandas >= 1.0.0
+    #- psycopg2
+    #- pytest
+    #- pytz
+    #- numpy
+    #- pyarrow
+    #- requests
+    #- simplejson
+    #- sqlalchemy
+    #- tzlocal
+    - pip
+    - pip:
+        - twine
+        #- awscli
+        #- flask-cors
+        #- flasgger
+        #- flask-migrate
+        #- flask-marshmallow==0.11.0
+        #- marshmallow-sqlalchemy
+        #- python-dotenv
+        #- PyYAML >=5.3
+        #- redis ==3.3.1
+        #- webtest
+        #- Werkzeug ==0.16.1
+        #- alpha_vantage
+        #- loguru
+
+
