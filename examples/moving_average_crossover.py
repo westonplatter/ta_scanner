@@ -1,27 +1,30 @@
-from tas.data import load_data
-from tas.signals import Signal
-from tas.filters import Filter
-from tas.reports import BasicReport
+from ta_scanner.data import load_data
+from ta_scanner.indicators import IndicatorSma
+from ta_scanner.signals import Signal
+from ta_scanner.filters import FilterCumsum
+from ta_scanner.reports import BasicReport
 
 
 # initialize signal.
 # Moving Average Crossover, 20 vs 50
-indicator = Indicator("macrx", {"interval_unit": "day", "slow_ma": 50, "fast_ma": 20})
+indicator_sma = IndicatorSma("macrx", {"interval_unit": "day", "slow_sma": 50, "fast_sma": 20})
 
 # get SPY data
 df = load_data("SPY")
 
 # apply indicator to generate signals
-df.apply_indicator(signal, field_name="macrx")
+indicator_sma.apply(df, field_name="macrx")
 
 # initialize filter
-sfilter = Filter("cumsum", threshold_interval=3, threshold_unit="day")
+sfilter = FilterCumsum(threshold_interval=20)
 
 # generate results
-results = sfilter.apply(df, field_name="macrx")
+results = sfilter.apply(df, field_name="macrx", win_points=40, loss_points=40)
 
 # analyze results
-report = BasicReport()
-pnl = report.analyze(results)
+basic_report = BasicReport()
+pnl = basic_report.analyze(df, "filter_cumsum")
 
-print(pnl)
+print("------------------------")
+
+print(f"Final PnL = {pnl}")
