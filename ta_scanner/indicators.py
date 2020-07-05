@@ -43,7 +43,7 @@ class IndicatorSma:
 
     def apply(self, df, field_name: str) -> None:
         sma = abstract.Function("sma")
-        df["slow_sma"] = sma(df.Close, timeperiod=self.params["slow_sma"])
-        df["fast_sma"] = sma(df.Close, timeperiod=self.params["fast_sma"])
+        df["slow_sma"] = sma(df.close, timeperiod=self.params["slow_sma"])
+        df["fast_sma"] = sma(df.close, timeperiod=self.params["fast_sma"])
         df[field_name] = crossover(df.fast_sma - df.slow_sma)
         return df

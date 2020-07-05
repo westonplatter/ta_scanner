@@ -40,7 +40,12 @@ class FilterCumsum(BaseFitler):
         FilterOptions.threshold_intervals,
     ]
 
-    def apply(self, df: pd.DataFrame, field_name: str, filter_options: Dict[FilterOptions, Any]):
+    def apply(
+        self,
+        df: pd.DataFrame,
+        field_name: str,
+        filter_options: Dict[FilterOptions, Any],
+    ):
         self.ensure_required_filter_options(
             self.required_filter_options, filter_options
         )
@@ -50,20 +55,20 @@ class FilterCumsum(BaseFitler):
 
         for index, rs in df.query(query_signals).iterrows():
             signal_direction = df.loc[index, field_name]
-            logger.debug(f"{signal_direction} @ {rs.Close}")
+            logger.debug(f"{signal_direction} @ {rs.close}")
 
             for index_after in range(0, threshold):
                 df_index = index + index_after
                 rx = df.iloc[df_index]
-                diff = (rx.Close - rs.Close) * signal_direction
+                diff = (rx.close - rs.close) * signal_direction
 
                 if diff >= filter_options[FilterOptions.win_points]:
                     df.loc[df_index, self.name] = diff
-                    logger.debug(f"Won @ {rx.Close}. Diff = {diff}")
+                    logger.debug(f"Won @ {rx.close}. Diff = {diff}")
                     break
                 if diff <= (filter_options[FilterOptions.loss_points] * -1.0):
                     df.loc[df_index, self.name] = diff
-                    logger.debug(f"Loss @ {rx.Close}. Diff = {diff}")
+                    logger.debug(f"Loss @ {rx.close}. Diff = {diff}")
                     break
 
                 if index_after == threshold - 1:

@@ -27,6 +27,7 @@ dependencies:
         - ipdb
         - TA-Lib
         - loguru
+        - ib_insync
         - "--editable ."
         #- flask-cors
         #- flasgger
