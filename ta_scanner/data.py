@@ -15,21 +15,23 @@ def load_data_ib(instrument_symbol: str):
     ib = IB()
     ib.connect("127.0.0.1", 4001, clientId=1)
 
-    contract = Stock(instrument_symbol, 'SMART', 'USD')
+    contract = Stock(instrument_symbol, "SMART", "USD")
 
-    dt = ''
+    dt = ""
     barsList = []
     maxTimes = 1
     times = 0
 
     while True:
-        bars = ib.reqHistoricalData(contract,
+        bars = ib.reqHistoricalData(
+            contract,
             endDateTime=dt,
-            durationStr='10 D',
-            barSizeSetting='30 mins',
-            whatToShow='TRADES',
+            durationStr="10 D",
+            barSizeSetting="30 mins",
+            whatToShow="TRADES",
             useRTH=True,
-            formatDate=1)
+            formatDate=1,
+        )
 
         if not bars or times > maxTimes:
             break
