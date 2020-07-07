@@ -15,6 +15,15 @@ of those stocks, which have responded more than +/- 2.5% in the past?
 ranges? What is the 1 and 2 std dev band for each isntrument at 30 minute
 intervals?
 
+## Features
+
+- [ ] Pull in live data from IB
+- [ ] Apply various indicators against single or multiple instruments
+    - [ ] Simple Moving Average Crossover
+    - [ ] MACD Crossover
+    - [ ]please open an issue for those you're interested in
+s- more coming
+
 ### Digging a little deeper
 
 Technical analysis sometimes works, and sometimes doesn't. The goal of this
@@ -42,7 +51,7 @@ This repo will feel like a mono repo to many, and focuses on
 
 
 ## Releasing
-
+```
 python setup.py sdist bdist_wheel
 twine upload dist/*
-
+```
