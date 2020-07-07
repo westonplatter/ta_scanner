@@ -7,24 +7,28 @@ dependencies:
     - python=3.7
     #- boto3
     #- celery
-    #- click
-    #- flask
+    - click
+    # - flask
     #- flask-sqlalchemy
     #- gunicorn
-    #- pandas >= 1.0.0
+    - pandas >= 1.0.0
     #- psycopg2
     #- pytest
     #- pytz
-    #- numpy
+    - numpy
     #- pyarrow
-    #- requests
+    - requests
     #- simplejson
     #- sqlalchemy
     #- tzlocal
     - pip
     - pip:
         - twine
-        #- awscli
+        - ipdb
+        - TA-Lib
+        - loguru
+        - ib_insync
+        - "--editable ."
         #- flask-cors
         #- flasgger
         #- flask-migrate
@@ -37,5 +41,6 @@ dependencies:
         #- Werkzeug ==0.16.1
         #- alpha_vantage
         #- loguru
+
 
 
