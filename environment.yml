@@ -9,18 +9,18 @@ dependencies:
     #- celery
     - click
     # - flask
-    #- flask-sqlalchemy
+    - sqlalchemy
     #- gunicorn
     - pandas >= 1.0.0
-    #- psycopg2
+    - psycopg2
     #- pytest
     #- pytz
     - numpy
     #- pyarrow
     - requests
     #- simplejson
-    #- sqlalchemy
-    #- tzlocal
+    # - sqlalchemy
+    - pytz
     - pip
     - pip:
         - twine
