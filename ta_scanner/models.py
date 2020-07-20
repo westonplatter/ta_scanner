@@ -15,9 +15,8 @@ def gen_engine():
 
 
 def init_db():
-    pass
-    # engine = gen_engine()
-    # Base.metadata.create_all(bind=engine)
+    engine = gen_engine()
+    Base.metadata.create_all(bind=engine)
 
 
 class Quote(Base):
@@ -26,7 +25,12 @@ class Quote(Base):
     id = Column(Integer, primary_key=True)
     ts = Column(DateTime(timezone=True), index=True)
     symbol = Column(String(10))
+    open = Column(Numeric(**NUMERIC_OPTIONS))
     close = Column(Numeric(**NUMERIC_OPTIONS))
+    high = Column(Numeric(**NUMERIC_OPTIONS))
+    low = Column(Numeric(**NUMERIC_OPTIONS))
+    average = Column(Numeric(**NUMERIC_OPTIONS))
     volume = Column(Integer)
+    bar_count = Column(Integer)
 
     __table_args__ = (Index("ix_quote_symbol_ts", symbol, ts, unique=True),)
