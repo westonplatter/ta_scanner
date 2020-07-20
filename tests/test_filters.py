@@ -9,6 +9,10 @@ def gen_df_zeros(field_name="some_field_name"):
     return pd.DataFrame(0, index=[1, 2, 3], columns=[field_name])
 
 
+def test_abstract_methods_present():
+    FilterCumsum()
+
+
 def test_required_filter_options():
     field_name = "indicator_name"
     df = gen_df_zeros(field_name)
