@@ -52,6 +52,16 @@ class WhatToShow(Enum):
     YIELD_LAST = "YIELD_LAST"
 
 
+class Exchange(Enum):
+    NYSE = "NYSE"
+    SMART = "NYSE"
+
+
+class ExchangeCalendar(Enum):
+    NYSE = "XNYS"
+    SMART = "SMART"
+
+
 def load_data(instrument_symbol: str):
     dirname = os.path.dirname(__file__)
     filename = os.path.join(dirname, f"./{instrument_symbol}.csv")
@@ -101,32 +111,65 @@ def load_data_ib(instrument_symbol: str):
     return df
 
 
-def request_ib(ib, contract: Contract, dt, duration, barSizeSetting, what_to_show):
+def request_ib(
+    ib,
+    contract: Contract,
+    dt: datetime,
+    duration: str,
+    bar_size_setting: str,
+    what_to_show: str,
+    use_rth: bool = False,
+) -> pd.DataFrame:
+    """Execute reqHistoricalData.
+
+    Args:
+        ib ([type]): [description]
+        contract (Contract): [description]
+        dt (datetime): [description]
+        duration (str): [description]
+        bar_size_setting (str): [description]
+        what_to_show (str): [description]
+        use_rth (bool, optional): [description]. Defaults to False.
+
+    Returns:
+        pd.DataFrame: [description]
+    """
     bars = ib.reqHistoricalData(
         contract,
         endDateTime=dt,
         durationStr=duration,
-        barSizeSetting=barSizeSetting,
+        barSizeSetting=bar_size_setting,
         whatToShow=what_to_show,
-        useRTH=False,
+        useRTH=use_rth,
         formatDate=2,  # return as UTC time
     )
     df = util.df(bars)
     return df
 
 
-def load_and_cache(instrument_symbol: str, **kwargs):
+def load_and_cache(instrument_symbol: str, **kwargs) -> pd.DataFrame:
+    """Fetch data from IB or postgres
+
+    Args:
+        instrument_symbol (str): [description]
+
+    Returns:
+        pd.DataFrame: [description]
+    """
     ib = prepare_ib()
     engine = gen_engine()
 
     previous_days = int(kwargs["previous_days"])
+    use_rth = kwargs["use_rth"] if "use_rth" in kwargs else False
 
     tz = pytz.timezone(TimezoneNames.US_EASTERN.value)
     now = datetime.now(tz)
     end_date = now - timedelta(days=previous_days)
 
-    contract = Stock(instrument_symbol, "SMART", "USD")
-    duration = f"1 D"
+    exchange = Exchange.SMART
+    contract = Stock(instrument_symbol, exchange.value, "USD")
+
+    duration = "1 D"
     bar_size_setting = "1 min"
     what_to_show = WhatToShow.TRADES.value
 
@@ -134,8 +177,13 @@ def load_and_cache(instrument_symbol: str, **kwargs):
     dfs = []
     # temp - stop
 
+    exchange_calendar = ExchangeCalendar[exchange.name]
+    calendar = get_calendar(exchange_calendar.value)
+
     for date in gen_last_x_days_from(previous_days, end_date):
         # if market was closed - skip
+        if calendar.is_session(date.date()) == False:
+            continue
 
         # if db already has values - skip
         if db_data_exists(engine, instrument_symbol, date):
@@ -149,15 +197,19 @@ def load_and_cache(instrument_symbol: str, **kwargs):
             rename_df_columns(df)
             # convert time from UTC to US/Eastern
             df["ts"] = df["ts"].dt.tz_convert(TimezoneNames.US_EASTERN.value)
+            apply_rth(df, calendar)
 
             try:
                 # cache df values
                 df.to_sql(
                     "quote", con=engine, if_exists="append", index=False, chunksize=1
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.error(e)
 
+        if use_rth:
+            df = reduce_to_only_rth(df)
+        
         # temp - start
         dfs.append(df)
         # temp - stop
@@ -185,7 +237,19 @@ def gen_last_x_days_from(x, date):
     return result
 
 
-def rename_df_columns(df):
+def reduce_to_only_rth(df) -> pd.DataFrame:
+    return df[df['rth'] == True]
+
+
+def apply_rth(df: pd.DataFrame, calendar: TradingCalendar) -> None:
+    calendar_name: str = "XNYS"
+    calendar = get_calendar(calendar_name)
+    def is_open(ts: pd.Timestamp):
+        return calendar.is_open_on_minute(ts)
+    df['rth'] = df.ts.apply(is_open)
+
+
+def rename_df_columns(df) -> None:
     df.rename(columns={"date": "ts", "barCount": "bar_count"}, inplace=True)
 
 
@@ -201,11 +265,12 @@ def db_data_exists(engine, instrument_symbol: str, date: datetime) -> bool:
         from {Quote.__tablename__}
         where
             symbol = '{instrument_symbol}'
-            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}' AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') 
+            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}') 
     """
     with engine.connect() as con:
         result = con.execute(clean_query(query))
         counts = [x for x in result]
+
     return counts != [(0,)]
 
 
@@ -217,6 +282,6 @@ def db_data_fetch(engine, instrument_symbol: str, date: datetime) -> pd.DataFram
         from {Quote.__tablename__}
         where 
             symbol = '{instrument_symbol}'
-            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}' AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') 
+            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}') 
     """
     return pd.read_sql(clean_query(query), con=engine)

@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine, Column, Integer, Numeric, String, DateTime, Index
+from sqlalchemy import create_engine, Column, Integer, Numeric, String, DateTime, Index, Boolean
 
 
 Base = declarative_base()
@@ -32,5 +32,6 @@ class Quote(Base):
     average = Column(Numeric(**NUMERIC_OPTIONS))
     volume = Column(Integer)
     bar_count = Column(Integer)
+    rth = Column(Boolean)
 
     __table_args__ = (Index("ix_quote_symbol_ts", symbol, ts, unique=True),)
