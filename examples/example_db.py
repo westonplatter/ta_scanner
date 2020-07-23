@@ -9,6 +9,4 @@ from ta_scanner.data import load_data, load_data_ib, prepare_db, load_and_cache
 
 prepare_db()
 
-df = load_and_cache("SPY", previous_days=10)
-
-import ipdb; ipdb.set_trace()
+df = load_and_cache("QQQ", previous_days=10, use_rth=True)

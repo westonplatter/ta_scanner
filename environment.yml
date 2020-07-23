@@ -28,7 +28,9 @@ dependencies:
         - TA-Lib
         - loguru
         - ib_insync
+        - trading_calendars
         - "--editable ."
+
         #- flask-cors
         #- flasgger
         #- flask-migrate
