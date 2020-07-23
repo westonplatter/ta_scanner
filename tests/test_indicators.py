@@ -9,6 +9,5 @@ def gen_df_zeros(field_name="some_field_name"):
     return pd.DataFrame(0, index=[1, 2, 3], columns=[field_name])
 
 
-def test_init():
-    x = IndicatorSmaCrossover()
-    assert x is not None
+def test_abstract_methods_present():
+    IndicatorSmaCrossover()

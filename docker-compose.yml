@@ -1,0 +1,16 @@
+version: '3.0'
+
+services:
+    pg:
+        image: postgres:12.2
+        restart: always
+        ports:
+          - 65432:5432
+        volumes:
+            - ..:/db_data
+        environment:
+            - POSTGRES_USER=ta_scanner
+            - POSTGRES_PASSWORD=ta_scanner
+
+volumes:
+    db_data:
