@@ -6,6 +6,7 @@ from loguru import logger
 from ib_insync import IB, Forex, Future, ContFuture, Stock, Contract, util
 from datetime import datetime, timedelta, timezone
 import pytz
+from trading_calendars import get_calendar, TradingCalendar
 
 from ta_scanner.models import gen_engine, init_db, Quote
 
