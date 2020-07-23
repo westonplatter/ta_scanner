@@ -29,7 +29,7 @@ class BaseFitler(metaclass=abc.ABCMeta):
         for fo_key in expected:
             if fo_key not in actual:
                 raise FilterException(f"expected this key key = {fo_key}")
-    
+
     @abc.abstractmethod
     def apply(self, df, field_name, filter_options):
         pass
