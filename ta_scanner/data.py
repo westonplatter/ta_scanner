@@ -62,12 +62,6 @@ class ExchangeCalendar(Enum):
     SMART = "SMART"
 
 
-def load_data(instrument_symbol: str):
-    dirname = os.path.dirname(__file__)
-    filename = os.path.join(dirname, f"./{instrument_symbol}.csv")
-    return pd.read_csv(filename)
-
-
 def prepare_db():
     init_db()
 
