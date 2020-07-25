@@ -62,12 +62,6 @@ class ExchangeCalendar(Enum):
     SMART = "SMART"
 
 
-def load_data(instrument_symbol: str):
-    dirname = os.path.dirname(__file__)
-    filename = os.path.join(dirname, f"./{instrument_symbol}.csv")
-    return pd.read_csv(filename)
-
-
 def prepare_db():
     init_db()
 
@@ -134,6 +128,7 @@ def load_and_cache(
         pd.DataFrame: [description]
     """
     engine = gen_engine()
+    prepare_db()
 
     previous_days = int(kwargs["previous_days"])
     use_rth = kwargs["use_rth"] if "use_rth" in kwargs else False

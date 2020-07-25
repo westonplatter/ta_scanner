@@ -1,13 +1,5 @@
 from loguru import logger
-from ta_scanner.data import load_data, prepare_db, load_and_cache, IbDataFetcher
-
-# from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams
-# from ta_scanner.signals import Signal
-# from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames
-# from ta_scanner.reports import BasicReport
-
-
-prepare_db()
+from ta_scanner.data import load_and_cache, IbDataFetcher
 
 ib_data_fetcher = IbDataFetcher()
 
