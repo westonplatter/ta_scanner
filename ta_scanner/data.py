@@ -78,76 +78,53 @@ def prepare_ib():
     return ib
 
 
-def load_data_ib(instrument_symbol: str):
-    ib = prepare_ib()
+from abc import ABCMeta, abstractmethod
 
-    contract = Stock(instrument_symbol, "SMART", "USD")
+# python3
+class DataFetcherBase(object, metaclass=ABCMeta):
+    pass
 
-    dt = ""
-    barsList = []
-    maxTimes = 1
-    times = 0
 
-    while True:
-        bars = ib.reqHistoricalData(
+class IbDataFetcher(DataFetcherBase):
+    def __init__(self):
+        self.ib = None
+
+    def init_client(
+        self, host: str = "127.0.0.1", port: int = 4001, client_id: int = 0
+    ) -> None:
+        ib = IB()
+        ib.connect(host, port, clientId=client_id)
+        self.ib = ib
+
+    def request_stock_instrument(
+        self, instrument_symbol: str, dt: datetime, what_to_show: str
+    ) -> pd.DataFrame:
+        if self.ib is None or not self.ib.isConnected():
+            self.init_client()
+
+        exchange = Exchange.SMART
+        contract = Stock(instrument_symbol, exchange.value, "USD")
+        duration = "1 D"
+        bar_size_setting = "1 min"
+        use_rth = False
+
+        bars = self.ib.reqHistoricalData(
             contract,
             endDateTime=dt,
-            durationStr="10 D",
-            barSizeSetting="30 mins",
-            whatToShow="TRADES",
-            useRTH=True,
-            formatDate=1,
+            durationStr=duration,
+            barSizeSetting=bar_size_setting,
+            whatToShow=what_to_show,
+            useRTH=use_rth,
+            formatDate=2,  # return as UTC time
         )
 
-        if not bars or times > maxTimes:
-            break
-        barsList.append(bars)
-        dt = bars[0].date
-        logger.debug(dt)
-        times += 1
-
-    allBars = [b for bars in reversed(barsList) for b in bars]
-    df = util.df(allBars)
-    return df
+        df = util.df(bars)
+        return df
 
 
-def request_ib(
-    ib,
-    contract: Contract,
-    dt: datetime,
-    duration: str,
-    bar_size_setting: str,
-    what_to_show: str,
-    use_rth: bool = False,
+def load_and_cache(
+    instrument_symbol: str, data_fetcher: DataFetcherBase, **kwargs
 ) -> pd.DataFrame:
-    """Execute reqHistoricalData.
-
-    Args:
-        ib ([type]): [description]
-        contract (Contract): [description]
-        dt (datetime): [description]
-        duration (str): [description]
-        bar_size_setting (str): [description]
-        what_to_show (str): [description]
-        use_rth (bool, optional): [description]. Defaults to False.
-
-    Returns:
-        pd.DataFrame: [description]
-    """
-    bars = ib.reqHistoricalData(
-        contract,
-        endDateTime=dt,
-        durationStr=duration,
-        barSizeSetting=bar_size_setting,
-        whatToShow=what_to_show,
-        useRTH=use_rth,
-        formatDate=2,  # return as UTC time
-    )
-    df = util.df(bars)
-    return df
-
-
-def load_and_cache(instrument_symbol: str, **kwargs) -> pd.DataFrame:
     """Fetch data from IB or postgres
 
     Args:
@@ -156,7 +133,6 @@ def load_and_cache(instrument_symbol: str, **kwargs) -> pd.DataFrame:
     Returns:
         pd.DataFrame: [description]
     """
-    ib = prepare_ib()
     engine = gen_engine()
 
     previous_days = int(kwargs["previous_days"])
@@ -166,19 +142,17 @@ def load_and_cache(instrument_symbol: str, **kwargs) -> pd.DataFrame:
     now = datetime.now(tz)
     end_date = now - timedelta(days=previous_days)
 
-    exchange = Exchange.SMART
-    contract = Stock(instrument_symbol, exchange.value, "USD")
-
-    duration = "1 D"
-    bar_size_setting = "1 min"
     what_to_show = WhatToShow.TRADES.value
 
     # this is temp - start
     dfs = []
     # temp - stop
 
+    exchange = Exchange.SMART
     exchange_calendar = ExchangeCalendar[exchange.name]
     calendar = get_calendar(exchange_calendar.value)
+
+    # ib_data_fetcher = IbDataFetcher()
 
     for date in gen_last_x_days_from(previous_days, end_date):
         # if market was closed - skip
@@ -188,11 +162,11 @@ def load_and_cache(instrument_symbol: str, **kwargs) -> pd.DataFrame:
         # if db already has values - skip
         if db_data_exists(engine, instrument_symbol, date):
             df = db_data_fetch(engine, instrument_symbol, date)
-            logger.debug(f"cached values for {instrument_symbol}. {date}")
         else:
-            df = request_ib(
-                ib, contract, date, duration, bar_size_setting, what_to_show
+            df = data_fetcher.request_stock_instrument(
+                instrument_symbol, date, what_to_show
             )
+
             df["symbol"] = instrument_symbol
             rename_df_columns(df)
             # convert time from UTC to US/Eastern
@@ -209,14 +183,20 @@ def load_and_cache(instrument_symbol: str, **kwargs) -> pd.DataFrame:
 
         if use_rth:
             df = reduce_to_only_rth(df)
-        
+
+        logger.debug(f"--- fetched {instrument_symbol} - {date.strftime('%Y-%m-%d')}")
+
         # temp - start
         dfs.append(df)
         # temp - stop
 
-        logger.debug(f"finished {date}")
+    logger.debug(f"finished {instrument_symbol}")
 
-    return pd.concat(dfs)
+    df = pd.concat(dfs)
+    df.drop(["id"], axis=1, inplace=True)
+    df.sort_values(by=["ts"], inplace=True, ascending=True)
+    df.reset_index(inplace=True)
+    return df
 
 
 def gen_last_x_days_from(x, date):
@@ -238,15 +218,17 @@ def gen_last_x_days_from(x, date):
 
 
 def reduce_to_only_rth(df) -> pd.DataFrame:
-    return df[df['rth'] == True]
+    return df[df["rth"] == True]
 
 
 def apply_rth(df: pd.DataFrame, calendar: TradingCalendar) -> None:
     calendar_name: str = "XNYS"
     calendar = get_calendar(calendar_name)
+
     def is_open(ts: pd.Timestamp):
         return calendar.is_open_on_minute(ts)
-    df['rth'] = df.ts.apply(is_open)
+
+    df["rth"] = df.ts.apply(is_open)
 
 
 def rename_df_columns(df) -> None:
@@ -282,6 +264,6 @@ def db_data_fetch(engine, instrument_symbol: str, date: datetime) -> pd.DataFram
         from {Quote.__tablename__}
         where 
             symbol = '{instrument_symbol}'
-            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}') 
+            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}')
     """
     return pd.read_sql(clean_query(query), con=engine)

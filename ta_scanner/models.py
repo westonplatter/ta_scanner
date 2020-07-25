@@ -1,5 +1,14 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine, Column, Integer, Numeric, String, DateTime, Index, Boolean
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    Numeric,
+    String,
+    DateTime,
+    Index,
+    Boolean,
+)
 
 
 Base = declarative_base()
