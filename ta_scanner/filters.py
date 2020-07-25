@@ -55,26 +55,44 @@ class FilterCumsum(BaseFitler):
         )
 
         query_signals = f"{field_name} != 0"
+
         threshold = filter_options[FilterOptions.threshold_intervals]
 
         for index, rs in df.query(query_signals).iterrows():
-            signal_direction = df.loc[index, field_name]
+            signal_direction = rs[field_name]
             logger.debug(f"{signal_direction} @ {rs.close}")
 
             for index_after in range(0, threshold):
                 df_index = index + index_after
+
+                if df_index >= len(df.index):
+                    rx = df.iloc[df_index - 1]
+                    diff = (rx.close - rs.close) * signal_direction
+                    logger.debug(f"Max time. Diff = {diff}")
+                    df.at[df_index, self.name] = diff
+                    break
+
                 rx = df.iloc[df_index]
                 diff = (rx.close - rs.close) * signal_direction
 
                 if diff >= filter_options[FilterOptions.win_points]:
-                    df.loc[df_index, self.name] = diff
+                    # df.loc[df_index, self.name] = diff
+                    df.at[df_index, self.name] = diff
                     logger.debug(f"Won @ {rx.close}. Diff = {diff}")
                     break
+
                 if diff <= (filter_options[FilterOptions.loss_points] * -1.0):
-                    df.loc[df_index, self.name] = diff
+                    # df.loc[df_index, self.name] = diff
+                    df.at[df_index, self.name] = diff
                     logger.debug(f"Loss @ {rx.close}. Diff = {diff}")
                     break
 
                 if index_after == threshold - 1:
                     logger.debug(f"Max time. Diff = {diff}")
-                    df.loc[df_index, self.name] = diff
+                    try:
+                        # df.loc[df_index, self.name] = diff
+                        df.at[df_index, self.name] = diff
+                    except Exception as e:
+                        import ipdb
+
+                        ipdb.set_trace()
