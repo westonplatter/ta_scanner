@@ -134,6 +134,7 @@ def load_and_cache(
         pd.DataFrame: [description]
     """
     engine = gen_engine()
+    prepare_db()
 
     previous_days = int(kwargs["previous_days"])
     use_rth = kwargs["use_rth"] if "use_rth" in kwargs else False

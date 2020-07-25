@@ -1,5 +1,5 @@
 from loguru import logger
-from ta_scanner.data import load_data, prepare_db, load_and_cache, IbDataFetcher
+from ta_scanner.data import load_and_cache, IbDataFetcher
 from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams
 from ta_scanner.signals import Signal
 from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames
@@ -7,7 +7,6 @@ from ta_scanner.reports import BasicReport
 
 
 # get SPY data
-prepare_db()
 ib_data_fetcher = IbDataFetcher()
 df = load_and_cache("SPY", ib_data_fetcher, previous_days=30, use_rth=True)
 
@@ -18,8 +17,8 @@ field_name = "moving_avg_cross"
 
 # Moving Average Crossover, 20 vs 50
 indicator_params = {
-    IndicatorParams.fast_ema: 10,
-    IndicatorParams.slow_ema: 50,
+    IndicatorParams.fast_sma: 20,
+    IndicatorParams.slow_sma: 50,
 }
 # apply indicator to generate signals
 indicator_sma_cross.apply(df, field_name, indicator_params)
