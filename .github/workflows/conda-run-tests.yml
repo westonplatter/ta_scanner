@@ -15,21 +15,17 @@ jobs:
       matrix:
         os: ["ubuntu-latest"] #, "macos-latest", "windows-latest"]
         python-version: ["3.7"] #, "2.7"]
-    # steps:
-    #   - uses: actions/checkout@v2
-    #   - uses: goanpeca/setup-miniconda@v1
-    #     with:
-    #       auto-update-conda: true
-    #       python-version: ${{ matrix.python-version }}
-    #       environment-file: ../environment.yml
-    #   # - name: Conda info
-    #   #   shell: bash -l {0}
-    #   #   run: conda list
-    #   # - name: Run tests
-    #   #   shell: bash -l {0}
-    #   #   run: pytest
 
     steps:
+      - name: Install xmllint
+        run: |
+          sudo apt install build-essential wget -y
+          wget https://artiya4u.keybase.pub/TA-lib/ta-lib-0.4.0-src.tar.gz
+          tar -xvf ta-lib-0.4.0-src.tar.gz
+          cd ta-lib/
+          ./configure --prefix=/usr
+          make
+          sudo make install
       - uses: actions/checkout@v2
       - name: Cache Conda
         uses: actions/cache@v1
@@ -41,9 +37,9 @@ jobs:
       - name: Setup Conda dependencies
         uses: goanpeca/setup-miniconda@v1
         with:
-          activate-environment: lab
+          activate-environment: ta_scanner
           environment-file: environment.yml
-          python-version: 3.7
+          python-version: "${{ matrix.python-version }}"
           auto-activate-base: false
       - name: Conda info
         shell: bash -l {0}
