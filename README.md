@@ -51,6 +51,9 @@ This repo will feel like a mono repo to many, and focuses on
 
 
 ## Releasing
+
+Pypi release commands,
+
 ```
 python setup.py sdist bdist_wheel
 twine upload dist/*
