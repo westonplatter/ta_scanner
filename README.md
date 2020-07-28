@@ -17,7 +17,7 @@ intervals?
 
 ## Features
 
-- [ ] Pull in live data from IB
+- [x] Pull data from IB
 - [ ] Apply various indicators against single or multiple instruments
     - [ ] Simple Moving Average Crossover
     - [ ] MACD Crossover
