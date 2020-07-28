@@ -58,9 +58,11 @@ class FilterCumsum(BaseFitler):
 
         threshold = filter_options[FilterOptions.threshold_intervals]
 
+        df.to_csv("signals.csv")
+
         for index, rs in df.query(query_signals).iterrows():
             signal_direction = rs[field_name]
-            logger.debug(f"{signal_direction} @ {rs.close}")
+            logger.debug(f"{signal_direction} @ {rs.close}. {rs.ts}")
 
             for index_after in range(0, threshold):
                 df_index = index + index_after
@@ -78,17 +80,21 @@ class FilterCumsum(BaseFitler):
                 if diff >= filter_options[FilterOptions.win_points]:
                     # df.loc[df_index, self.name] = diff
                     df.at[df_index, self.name] = diff
-                    logger.debug(f"Won @ {rx.close}. Diff = {diff}")
+                    logger.debug(
+                        f"Won @ {rx.close}. Diff = {diff}. {df.at[df_index, 'close']}"
+                    )
                     break
 
                 if diff <= (filter_options[FilterOptions.loss_points] * -1.0):
                     # df.loc[df_index, self.name] = diff
                     df.at[df_index, self.name] = diff
-                    logger.debug(f"Loss @ {rx.close}. Diff = {diff}")
+                    logger.debug(
+                        f"Loss @ {rx.close}. Diff = {diff}. {df.at[df_index, 'close']}"
+                    )
                     break
 
                 if index_after == threshold - 1:
-                    logger.debug(f"Max time. Diff = {diff}")
+                    logger.debug(f"Max time. Diff = {diff}. {df.at[df_index, 'close']}")
                     try:
                         # df.loc[df_index, self.name] = diff
                         df.at[df_index, self.name] = diff
