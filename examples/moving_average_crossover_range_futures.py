@@ -12,7 +12,6 @@ from ta_scanner.reports import BasicReport
 logger.remove()
 logger.add(sys.stderr, level="INFO")
 
-# get SPY data
 ib_data_fetcher = IbDataFetcher()
 df = load_and_cache("/MNQ", ib_data_fetcher, previous_days=30, use_rth=True)
 

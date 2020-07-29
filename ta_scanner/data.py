@@ -7,7 +7,7 @@ from ib_insync import IB, Forex, Future, ContFuture, Stock, Contract, util
 from datetime import datetime, timedelta, timezone
 import pytz
 from trading_calendars import get_calendar, TradingCalendar
-from typing import Optional
+from typing import Optional, Dict
 
 from ta_scanner.models import gen_engine, init_db, Quote
 
@@ -37,16 +37,58 @@ class WhatToShow(Enum):
 
 
 class Exchange(Enum):
-    NYSE = "NYSE"
-    SMART = "NYSE"
-    GLOBEX = "GLOBEX"
-
-
-class ExchangeCalendar(Enum):
-    # https://github.com/quantopian/trading_calendars
-    NYSE = "XNYS"
     SMART = "SMART"
-    GLOBEX = "CMES"
+    NYSE = "NYSE"
+    GLOBEX = "GLOBEX"
+    NYMEX = "NYMEX"
+    ECBOT = "ECBOT"
+    CBOE = "CBOE"
+    ICE = "ICE"
+
+class Calendar(Enum):
+    # https://github.com/quantopian/trading_calendars
+    DEFAULT = "XNYS" # default to NYSE
+    NYSE = "XNYS"
+    CME = "CMES"
+    CBOE = "XCBF"
+    ICE = "IEPA"
+
+    @staticmethod
+    def futures_lookup_hash() -> Dict:
+        return {
+            Calendar.CMES: [
+                # equities
+                '/ES', '/MES', '/MNQ', '/NQ',
+                # metals
+                '/GC', '/MGC',
+                # metals
+                '/CL', '/QM',
+                # currencies
+                '/M6A', '/M6B', '/M6E',
+                # interest rates 
+                '/GE', '/ZN', '/ZN', '/ZT',
+                # grains
+                '/ZC', '/YC', '/ZS', '/YK', '/ZW', '/YW'
+            ],
+            Calendar.CBOE: [],
+            Calendar.ICE: [],
+        }
+
+    @staticmethod
+    def select_exchange_by_symbol(symbol: str):
+        for k, v in Calendar.futures_lookup_hash().items():
+            if symbol in v:
+                return k
+        return Calendar.GLOBEX
+
+    @staticmethod
+    def init_by_symbol(symbol: str) -> TradingCalendar:
+        if "/" in symbol:
+            key = Calendar.select_exchange_by_symbol(symbol)
+            name = key.value
+        else:
+            name = Calendar.NYSE.value
+        return get_calendar(name)
 
 
 class Currency(Enum):
@@ -164,8 +206,7 @@ def load_and_cache(
     # temp - stop
 
     exchange = Exchange.SMART
-    exchange_calendar = ExchangeCalendar[exchange.name]
-    calendar = get_calendar(exchange_calendar.value)
+    calendar = Calendar.init_by_symbol(instrument_symbol)
 
     for date in gen_last_x_days_from(previous_days, end_date):
         # if market was closed - skip
