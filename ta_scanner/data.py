@@ -45,6 +45,8 @@ class Exchange(Enum):
     CBOE = "CBOE"
     ICE = "ICE"
 
+
+
 class Calendar(Enum):
     # https://github.com/quantopian/trading_calendars
     DEFAULT = "XNYS" # default to NYSE
@@ -56,9 +58,9 @@ class Calendar(Enum):
     @staticmethod
     def futures_lookup_hash() -> Dict:
         return {
-            Calendar.CMES: [
+            Calendar.CME: [
                 # equities
-                '/ES', '/MES', '/MNQ', '/NQ',
+                '/ES', '/MES', '/MNQ', '/NQ', '/MNQ'
                 # metals
                 '/GC', '/MGC',
                 # metals
@@ -79,7 +81,8 @@ class Calendar(Enum):
         for k, v in Calendar.futures_lookup_hash().items():
             if symbol in v:
                 return k
-        return Calendar.GLOBEX
+        logger.waring(f"Did not find a calendar entry for symbol={symbol}")
+        return Calendar.DEFAULT
 
     @staticmethod
     def init_by_symbol(symbol: str) -> TradingCalendar:
@@ -145,6 +148,25 @@ class IbDataFetcher(DataFetcherBase):
             contract, dt, duration, bar_size_setting, what_to_show, use_rth
         )
 
+    def select_echange_by_symbol(self, symbol):
+        d = {
+            Exchange.GLOBEX: [
+                # equities
+                '/ES', '/MES', '/MNQ', '/NQ', '/MNQ'
+                # # currencies
+                # ? '/M6A', '/M6B', '/M6E',
+                # # interest rates 
+                # ? '/GE', '/ZN', '/ZN', '/ZT',
+            ],
+            Exchange.ECBOT: ['/ZC', '/YC', '/ZS', '/YK', '/ZW', '/YW'],
+            Exchange.NYMEX: ['/GC', '/MGC', '/CL', '/QM',],
+        }
+
+        for k, v in d.items():
+            if symbol in v:
+                return k
+        raise NotImplementedError
+
     def request_future_instrument(
         self,
         symbol: str,
@@ -152,12 +174,12 @@ class IbDataFetcher(DataFetcherBase):
         what_to_show: str,
         contract_date: Optional[str] = None,
     ) -> pd.DataFrame:
-        exchange = Exchange.GLOBEX.value
+        exchange_name = self.select_echange_by_symbol(symbol).value
 
         if contract_date:
             raise NotImplementedError
         else:
-            contract = ContFuture(symbol, exchange, currency=Currency.USD.value)
+            contract = ContFuture(symbol, exchange_name, currency=Currency.USD.value)
 
         duration = "1 D"
         bar_size_setting = "1 min"
@@ -205,7 +227,6 @@ def load_and_cache(
     dfs = []
     # temp - stop
 
-    exchange = Exchange.SMART
     calendar = Calendar.init_by_symbol(instrument_symbol)
 
     for date in gen_last_x_days_from(previous_days, end_date):
