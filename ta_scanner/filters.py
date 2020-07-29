@@ -44,11 +44,18 @@ class FilterCumsum(BaseFitler):
         FilterOptions.threshold_intervals,
     ]
 
+    def log_exit(self, action: str, diff, row):
+        logger.debug(f"Action={action}. Ts={row.ts}. Diff={diff}. Close={row.close}")
+
+    def log_entry(self, action, row):
+        logger.debug(f"Action={action}. Ts={row.ts}. Close={row.close}")
+
     def apply(
         self,
         df: pd.DataFrame,
         field_name: str,
         filter_options: Dict[FilterOptions, Any],
+        inverse: int = 1
     ):
         self.ensure_required_filter_options(
             self.required_filter_options, filter_options
@@ -59,8 +66,8 @@ class FilterCumsum(BaseFitler):
         threshold = filter_options[FilterOptions.threshold_intervals]
 
         for index, rs in df.query(query_signals).iterrows():
-            signal_direction = rs[field_name]
-            logger.debug(f"{signal_direction} @ {rs.close}")
+            signal_direction = rs[field_name] * inverse
+            self.log_entry(signal_direction, rs)
 
             for index_after in range(0, threshold):
                 df_index = index + index_after
@@ -68,7 +75,7 @@ class FilterCumsum(BaseFitler):
                 if df_index >= len(df.index):
                     rx = df.iloc[df_index - 1]
                     diff = (rx.close - rs.close) * signal_direction
-                    logger.debug(f"Max time. Diff = {diff}")
+                    self.log_exit("MaxTime", diff, rx)
                     df.at[df_index, self.name] = diff
                     break
 
@@ -76,23 +83,16 @@ class FilterCumsum(BaseFitler):
                 diff = (rx.close - rs.close) * signal_direction
 
                 if diff >= filter_options[FilterOptions.win_points]:
-                    # df.loc[df_index, self.name] = diff
+                    self.log_exit("Won", diff, df.loc[df_index])
                     df.at[df_index, self.name] = diff
-                    logger.debug(f"Won @ {rx.close}. Diff = {diff}")
                     break
 
                 if diff <= (filter_options[FilterOptions.loss_points] * -1.0):
-                    # df.loc[df_index, self.name] = diff
                     df.at[df_index, self.name] = diff
-                    logger.debug(f"Loss @ {rx.close}. Diff = {diff}")
+                    self.log_exit("Lost", diff, df.loc[df_index])
                     break
 
                 if index_after == threshold - 1:
-                    logger.debug(f"Max time. Diff = {diff}")
-                    try:
-                        # df.loc[df_index, self.name] = diff
-                        df.at[df_index, self.name] = diff
-                    except Exception as e:
-                        import ipdb
-
-                        ipdb.set_trace()
+                    self.log_exit("MaxTime", diff, df.loc[df_index])
+                    df.at[df_index, self.name] = diff
+                

@@ -17,12 +17,10 @@ intervals?
 
 ## Features
 
-- [ ] Pull in live data from IB
+- [x] Pull data from IB
 - [ ] Apply various indicators against single or multiple instruments
     - [ ] Simple Moving Average Crossover
     - [ ] MACD Crossover
-    - [ ]please open an issue for those you're interested in
-s- more coming
 
 ### Digging a little deeper
 

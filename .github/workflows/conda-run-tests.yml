@@ -2,9 +2,11 @@ name: Run tests
 
 on:
   push:
-    branches: [ dev, "issue-12/base"]
+    branches:
+      - "issue-**"
   pull_request:
-    branches: [ dev ]
+    branches: 
+      - "dev"
 
 jobs:
   example-1:
