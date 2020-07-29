@@ -12,24 +12,6 @@ from typing import Optional
 from ta_scanner.models import gen_engine, init_db, Quote
 
 
-VALID_WHAT_TO_SHOW_TYPES = [
-    "TRADES",
-    "MIDPOINT",
-    "BID",
-    "ASK",
-    "BID_ASK",
-    "ADJUSTED_LAST",
-    "HISTORICAL_VOLATILITY",
-    "OPTION_IMPLIED_VOLATILITY",
-    "REBATE_RATE",
-    "FEE_RATE",
-    "YIELD_BID",
-    "YIELD_ASK",
-    "YIELD_BID_ASK",
-    "YIELD_LAST",
-]
-
-
 class TimezoneNames(Enum):
     US_EASTERN = "US/Eastern"
     US_CENTRAL = "US/Central"
