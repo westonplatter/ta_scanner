@@ -7,7 +7,7 @@ from ib_insync import IB, Forex, Future, ContFuture, Stock, Contract, util
 from datetime import datetime, timedelta, timezone
 import pytz
 from trading_calendars import get_calendar, TradingCalendar
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 from ta_scanner.models import gen_engine, init_db, Quote
 
@@ -199,6 +199,12 @@ class IbDataFetcher(DataFetcherBase):
             return self.request_stock_instrument(symbol, dt, what_to_show)
 
 
+def extract_kwarg(kwargs: Dict, key: str, default_value: Any = None) -> Optional[Any]:
+    if key in kwargs:
+        return kwargs[key]
+    else:
+        return default_value        
+
 def load_and_cache(
     instrument_symbol: str, data_fetcher: DataFetcherBase, **kwargs
 ) -> pd.DataFrame:
@@ -206,6 +212,8 @@ def load_and_cache(
 
     Args:
         instrument_symbol (str): [description]
+        data_fetcher (DataFetcherBase): [description]
+        kwargs (Dict): [description]
 
     Returns:
         pd.DataFrame: [description]
@@ -213,9 +221,11 @@ def load_and_cache(
     engine = gen_engine()
     init_db()
 
+    # turn kwargs into variables
     previous_days = int(kwargs["previous_days"])
-    use_rth = kwargs["use_rth"] if "use_rth" in kwargs else False
-    contract_date = kwargs["contract_date"] if "contract_date" in kwargs else None
+    use_rth = extract_kwarg(kwargs, "use_rth", False)
+    contract_date = extract_kwarg(kwargs, "contract_date")
+    groupby_minutes = extract_kwarg(kwargs, "groupby_minutes", 1)
 
     tz = pytz.timezone(TimezoneNames.US_EASTERN.value)
     now = datetime.now(tz)
@@ -256,6 +266,10 @@ def load_and_cache(
 
         if use_rth:
             df = reduce_to_only_rth(df)
+
+        # import ipdb; ipdb.set_trace()
+
+        df = aggregate_bars(df, groupby_minutes)
 
         logger.debug(f"--- fetched {instrument_symbol} - {date.strftime('%Y-%m-%d')}")
 
@@ -303,6 +317,23 @@ def apply_rth(df: pd.DataFrame, calendar: TradingCalendar) -> None:
 
     df["rth"] = df.ts.apply(is_open)
 
+def aggregate_bars(df: pd.DataFrame, groupby_minutes: int) -> pd.DataFrame:
+    if groupby_minutes == 1:
+        return df
+
+    groupby = f"{groupby_minutes}min"
+    agg_expression = {
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+        "volume": "sum",
+    }
+    raise NotImplementedError
+    # TODO(weston) set index to DatetimeIndex in order for next line to execute
+    df = df.resample(groupby).agg(agg_expression)
+    # df.dropna(subset=["close"], inplace=True)
+    return df
 
 def rename_df_columns(df) -> None:
     df.rename(columns={"date": "ts", "barCount": "bar_count"}, inplace=True)
