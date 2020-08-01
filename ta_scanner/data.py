@@ -46,10 +46,9 @@ class Exchange(Enum):
     ICE = "ICE"
 
 
-
 class Calendar(Enum):
     # https://github.com/quantopian/trading_calendars
-    DEFAULT = "XNYS" # default to NYSE
+    DEFAULT = "XNYS"  # default to NYSE
     NYSE = "XNYS"
     CME = "CMES"
     CBOE = "XCBF"
@@ -60,17 +59,33 @@ class Calendar(Enum):
         return {
             Calendar.CME: [
                 # equities
-                '/ES', '/MES', '/MNQ', '/NQ', '/MNQ',
+                "/ES",
+                "/MES",
+                "/MNQ",
+                "/NQ",
+                "/MNQ",
                 # metals
-                '/GC', '/MGC',
+                "/GC",
+                "/MGC",
                 # energy
-                '/CL', '/QM',
+                "/CL",
+                "/QM",
                 # currencies
-                '/M6A', '/M6B', '/M6E',
-                # interest rates 
-                '/GE', '/ZN', '/ZN', '/ZT',
+                "/M6A",
+                "/M6B",
+                "/M6E",
+                # interest rates
+                "/GE",
+                "/ZN",
+                "/ZN",
+                "/ZT",
                 # grains
-                '/ZC', '/YC', '/ZS', '/YK', '/ZW', '/YW',
+                "/ZC",
+                "/YC",
+                "/ZS",
+                "/YK",
+                "/ZW",
+                "/YW",
             ],
             Calendar.CBOE: [],
             Calendar.ICE: [],
@@ -152,14 +167,18 @@ class IbDataFetcher(DataFetcherBase):
         d = {
             Exchange.GLOBEX: [
                 # equities
-                '/ES', '/MES', '/MNQ', '/NQ', '/MNQ'
+                "/ES",
+                "/MES",
+                "/MNQ",
+                "/NQ",
+                "/MNQ"
                 # # currencies
                 # ? '/M6A', '/M6B', '/M6E',
-                # # interest rates 
+                # # interest rates
                 # ? '/GE', '/ZN', '/ZN', '/ZT',
             ],
-            Exchange.ECBOT: ['/ZC', '/YC', '/ZS', '/YK', '/ZW', '/YW'],
-            Exchange.NYMEX: ['/GC', '/MGC', '/CL', '/QM',],
+            Exchange.ECBOT: ["/ZC", "/YC", "/ZS", "/YK", "/ZW", "/YW"],
+            Exchange.NYMEX: ["/GC", "/MGC", "/CL", "/QM",],
         }
 
         for k, v in d.items():
@@ -203,7 +222,7 @@ def extract_kwarg(kwargs: Dict, key: str, default_value: Any = None) -> Optional
     if key in kwargs:
         return kwargs[key]
     else:
-        return default_value        
+        return default_value
 
 
 def load_and_cache(
@@ -324,10 +343,10 @@ def aggregate_bars(df: pd.DataFrame, groupby_minutes: int) -> pd.DataFrame:
     if groupby_minutes == 1:
         return df
 
-    # this method only intended to handle data that's 
+    # this method only intended to handle data that's
     # aggredating data at intervals less than 1 day
     assert groupby_minutes < 1440
-    
+
     groupby = f"{groupby_minutes}min"
 
     agg_expression = {
@@ -343,7 +362,7 @@ def aggregate_bars(df: pd.DataFrame, groupby_minutes: int) -> pd.DataFrame:
 
 
 def transform_set_index_ts(df: pd.DataFrame) -> None:
-    df.set_index('ts', inplace=True)
+    df.set_index("ts", inplace=True)
 
 
 def transform_rename_df_columns(df) -> None:

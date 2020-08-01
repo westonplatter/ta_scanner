@@ -37,7 +37,9 @@ class BaseIndicator(metaclass=abc.ABCMeta):
         for expected_key in expected:
             if expected_key not in actual:
                 indicator_name = self.__class__.__name__
-                raise IndicatorException(f"{indicator_name} requires key = {expected_key}")
+                raise IndicatorException(
+                    f"{indicator_name} requires key = {expected_key}"
+                )
 
     @abc.abstractmethod
     def apply(self, df, field_name: str) -> None:

@@ -55,7 +55,7 @@ class FilterCumsum(BaseFitler):
         df: pd.DataFrame,
         field_name: str,
         filter_options: Dict[FilterOptions, Any],
-        inverse: int = 1
+        inverse: int = 1,
     ):
         self.ensure_required_filter_options(
             self.required_filter_options, filter_options
@@ -95,4 +95,3 @@ class FilterCumsum(BaseFitler):
                 if index_after == threshold - 1:
                     self.log_exit("MaxTime", diff, df.loc[df_index])
                     df.at[df_index, self.name] = diff
-                

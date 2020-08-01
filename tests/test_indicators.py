@@ -2,7 +2,11 @@ import pandas as pd
 import pytest
 from typing import Any, Dict
 
-from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams, IndicatorException
+from ta_scanner.indicators import (
+    IndicatorSmaCrossover,
+    IndicatorParams,
+    IndicatorException,
+)
 
 
 def gen_df_zeros(field_name="some_field_name"):
@@ -27,6 +31,5 @@ def test_ensure_required_filter_options():
     with pytest.raises(IndicatorException) as e:
         sma_crossover.apply(fake_df, fake_field_name, params=params)
 
-    expected_message = 'IndicatorSmaCrossover requires key = IndicatorParams.slow_sma'
+    expected_message = "IndicatorSmaCrossover requires key = IndicatorParams.slow_sma"
     assert expected_message == str(e.value)
-
