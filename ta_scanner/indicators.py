@@ -34,9 +34,10 @@ class BaseIndicator(metaclass=abc.ABCMeta):
     def ensure_required_filter_options(
         self, expected: List[IndicatorParams], actual: Dict[IndicatorParams, Any]
     ):
-        for fo_key in expected:
-            if fo_key not in actual:
-                raise IndicatorException(f"expected this key = {fo_key}")
+        for expected_key in expected:
+            if expected_key not in actual:
+                indicator_name = self.__class__.__name__
+                raise IndicatorException(f"{indicator_name} requires key = {expected_key}")
 
     @abc.abstractmethod
     def apply(self, df, field_name: str) -> None:
