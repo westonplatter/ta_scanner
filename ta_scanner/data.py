@@ -7,7 +7,7 @@ from ib_insync import IB, Forex, Future, ContFuture, Stock, Contract, util
 from datetime import datetime, timedelta, timezone
 import pytz
 from trading_calendars import get_calendar, TradingCalendar
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 from ta_scanner.models import gen_engine, init_db, Quote
 
@@ -46,10 +46,9 @@ class Exchange(Enum):
     ICE = "ICE"
 
 
-
 class Calendar(Enum):
     # https://github.com/quantopian/trading_calendars
-    DEFAULT = "XNYS" # default to NYSE
+    DEFAULT = "XNYS"  # default to NYSE
     NYSE = "XNYS"
     CME = "CMES"
     CBOE = "XCBF"
@@ -60,17 +59,33 @@ class Calendar(Enum):
         return {
             Calendar.CME: [
                 # equities
-                '/ES', '/MES', '/MNQ', '/NQ', '/MNQ'
+                "/ES",
+                "/MES",
+                "/MNQ",
+                "/NQ",
+                "/MNQ",
                 # metals
-                '/GC', '/MGC',
-                # metals
-                '/CL', '/QM',
+                "/GC",
+                "/MGC",
+                # energy
+                "/CL",
+                "/QM",
                 # currencies
-                '/M6A', '/M6B', '/M6E',
-                # interest rates 
-                '/GE', '/ZN', '/ZN', '/ZT',
+                "/M6A",
+                "/M6B",
+                "/M6E",
+                # interest rates
+                "/GE",
+                "/ZN",
+                "/ZN",
+                "/ZT",
                 # grains
-                '/ZC', '/YC', '/ZS', '/YK', '/ZW', '/YW'
+                "/ZC",
+                "/YC",
+                "/ZS",
+                "/YK",
+                "/ZW",
+                "/YW",
             ],
             Calendar.CBOE: [],
             Calendar.ICE: [],
@@ -81,7 +96,7 @@ class Calendar(Enum):
         for k, v in Calendar.futures_lookup_hash().items():
             if symbol in v:
                 return k
-        logger.waring(f"Did not find a calendar entry for symbol={symbol}")
+        logger.warning(f"Did not find a calendar entry for symbol={symbol}")
         return Calendar.DEFAULT
 
     @staticmethod
@@ -152,14 +167,18 @@ class IbDataFetcher(DataFetcherBase):
         d = {
             Exchange.GLOBEX: [
                 # equities
-                '/ES', '/MES', '/MNQ', '/NQ', '/MNQ'
+                "/ES",
+                "/MES",
+                "/MNQ",
+                "/NQ",
+                "/MNQ"
                 # # currencies
                 # ? '/M6A', '/M6B', '/M6E',
-                # # interest rates 
+                # # interest rates
                 # ? '/GE', '/ZN', '/ZN', '/ZT',
             ],
-            Exchange.ECBOT: ['/ZC', '/YC', '/ZS', '/YK', '/ZW', '/YW'],
-            Exchange.NYMEX: ['/GC', '/MGC', '/CL', '/QM',],
+            Exchange.ECBOT: ["/ZC", "/YC", "/ZS", "/YK", "/ZW", "/YW"],
+            Exchange.NYMEX: ["/GC", "/MGC", "/CL", "/QM",],
         }
 
         for k, v in d.items():
@@ -199,6 +218,13 @@ class IbDataFetcher(DataFetcherBase):
             return self.request_stock_instrument(symbol, dt, what_to_show)
 
 
+def extract_kwarg(kwargs: Dict, key: str, default_value: Any = None) -> Optional[Any]:
+    if key in kwargs:
+        return kwargs[key]
+    else:
+        return default_value
+
+
 def load_and_cache(
     instrument_symbol: str, data_fetcher: DataFetcherBase, **kwargs
 ) -> pd.DataFrame:
@@ -206,6 +232,8 @@ def load_and_cache(
 
     Args:
         instrument_symbol (str): [description]
+        data_fetcher (DataFetcherBase): [description]
+        kwargs (Dict): [description]
 
     Returns:
         pd.DataFrame: [description]
@@ -213,9 +241,12 @@ def load_and_cache(
     engine = gen_engine()
     init_db()
 
+    # turn kwargs into variables
     previous_days = int(kwargs["previous_days"])
-    use_rth = kwargs["use_rth"] if "use_rth" in kwargs else False
-    contract_date = kwargs["contract_date"] if "contract_date" in kwargs else None
+    use_rth = extract_kwarg(kwargs, "use_rth", False)
+    contract_date = extract_kwarg(kwargs, "contract_date")
+    groupby_minutes = extract_kwarg(kwargs, "groupby_minutes", 1)
+    return_tz = extract_kwarg(kwargs, "return_tz", TimezoneNames.US_EASTERN.value)
 
     tz = pytz.timezone(TimezoneNames.US_EASTERN.value)
     now = datetime.now(tz)
@@ -241,7 +272,7 @@ def load_and_cache(
             df = data_fetcher.request_instrument(instrument_symbol, date, what_to_show)
 
             df["symbol"] = instrument_symbol
-            rename_df_columns(df)
+            transform_rename_df_columns(df)
             # convert time from UTC to US/Eastern
             df["ts"] = df["ts"].dt.tz_convert(TimezoneNames.US_EASTERN.value)
             apply_rth(df, calendar)
@@ -257,6 +288,11 @@ def load_and_cache(
         if use_rth:
             df = reduce_to_only_rth(df)
 
+        transform_set_index_ts(df)
+
+        df = aggregate_bars(df, groupby_minutes)
+        transform_ts_result_tz(df, return_tz)
+
         logger.debug(f"--- fetched {instrument_symbol} - {date.strftime('%Y-%m-%d')}")
 
         # temp - start
@@ -266,7 +302,6 @@ def load_and_cache(
     logger.debug(f"finished {instrument_symbol}")
 
     df = pd.concat(dfs)
-    df.drop(["id"], axis=1, inplace=True)
     df.sort_values(by=["ts"], inplace=True, ascending=True)
     df.reset_index(inplace=True)
     return df
@@ -304,8 +339,39 @@ def apply_rth(df: pd.DataFrame, calendar: TradingCalendar) -> None:
     df["rth"] = df.ts.apply(is_open)
 
 
-def rename_df_columns(df) -> None:
+def aggregate_bars(df: pd.DataFrame, groupby_minutes: int) -> pd.DataFrame:
+    if groupby_minutes == 1:
+        return df
+
+    # this method only intended to handle data that's
+    # aggredating data at intervals less than 1 day
+    assert groupby_minutes < 1440
+
+    groupby = f"{groupby_minutes}min"
+
+    agg_expression = {
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+        "volume": "sum",
+    }
+    df = df.resample(groupby).agg(agg_expression)
+    df.dropna(subset=["open", "close", "high", "low"], inplace=True)
+    return df
+
+
+def transform_set_index_ts(df: pd.DataFrame) -> None:
+    df.set_index("ts", inplace=True)
+
+
+def transform_rename_df_columns(df) -> None:
     df.rename(columns={"date": "ts", "barCount": "bar_count"}, inplace=True)
+
+
+def transform_ts_result_tz(df: pd.DataFrame, return_tz: str) -> None:
+    return_tz_value = pytz.timezone(return_tz)
+    df.index = df.index.tz_convert(return_tz_value)
 
 
 def clean_query(query: str) -> str:
