@@ -205,6 +205,7 @@ def extract_kwarg(kwargs: Dict, key: str, default_value: Any = None) -> Optional
     else:
         return default_value        
 
+
 def load_and_cache(
     instrument_symbol: str, data_fetcher: DataFetcherBase, **kwargs
 ) -> pd.DataFrame:
@@ -251,7 +252,7 @@ def load_and_cache(
             df = data_fetcher.request_instrument(instrument_symbol, date, what_to_show)
 
             df["symbol"] = instrument_symbol
-            rename_df_columns(df)
+            transform_rename_df_columns(df)
             # convert time from UTC to US/Eastern
             df["ts"] = df["ts"].dt.tz_convert(TimezoneNames.US_EASTERN.value)
             apply_rth(df, calendar)
@@ -267,7 +268,7 @@ def load_and_cache(
         if use_rth:
             df = reduce_to_only_rth(df)
 
-        # import ipdb; ipdb.set_trace()
+        transform_set_index_ts(df)
 
         df = aggregate_bars(df, groupby_minutes)
 
@@ -280,7 +281,6 @@ def load_and_cache(
     logger.debug(f"finished {instrument_symbol}")
 
     df = pd.concat(dfs)
-    df.drop(["id"], axis=1, inplace=True)
     df.sort_values(by=["ts"], inplace=True, ascending=True)
     df.reset_index(inplace=True)
     return df
@@ -317,11 +317,17 @@ def apply_rth(df: pd.DataFrame, calendar: TradingCalendar) -> None:
 
     df["rth"] = df.ts.apply(is_open)
 
+
 def aggregate_bars(df: pd.DataFrame, groupby_minutes: int) -> pd.DataFrame:
     if groupby_minutes == 1:
         return df
 
+    # this method only intended to handle data that's 
+    # aggredating data at intervals less than 1 day
+    assert groupby_minutes < 1440
+    
     groupby = f"{groupby_minutes}min"
+
     agg_expression = {
         "open": "first",
         "high": "max",
@@ -329,13 +335,16 @@ def aggregate_bars(df: pd.DataFrame, groupby_minutes: int) -> pd.DataFrame:
         "close": "last",
         "volume": "sum",
     }
-    raise NotImplementedError
-    # TODO(weston) set index to DatetimeIndex in order for next line to execute
     df = df.resample(groupby).agg(agg_expression)
-    # df.dropna(subset=["close"], inplace=True)
+    df.dropna(subset=["open", "close", "high", "low"], inplace=True)
     return df
 
-def rename_df_columns(df) -> None:
+
+def transform_set_index_ts(df: pd.DataFrame) -> None:
+    df.set_index('ts', inplace=True)
+
+
+def transform_rename_df_columns(df) -> None:
     df.rename(columns={"date": "ts", "barCount": "bar_count"}, inplace=True)
 
 
