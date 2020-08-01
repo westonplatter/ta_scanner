@@ -3,5 +3,8 @@ from ta_scanner.data import load_and_cache, IbDataFetcher
 
 ib_data_fetcher = IbDataFetcher()
 
-df = load_and_cache("QQQ", ib_data_fetcher, previous_days=10, use_rth=True)
-df = load_and_cache("SPY", ib_data_fetcher, previous_days=10, use_rth=True)
+symbols = ["SPY", "QQQ", "AAPL"]
+
+for symbol in symbols:
+    df = load_and_cache(symbol, ib_data_fetcher, previous_days=20, use_rth=False, groupby_minutes=15)
+    logger.info(f"{symbol} - {len(df.index)}")

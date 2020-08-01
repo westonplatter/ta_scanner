@@ -227,6 +227,7 @@ def load_and_cache(
     use_rth = extract_kwarg(kwargs, "use_rth", False)
     contract_date = extract_kwarg(kwargs, "contract_date")
     groupby_minutes = extract_kwarg(kwargs, "groupby_minutes", 1)
+    return_tz = extract_kwarg(kwargs, "return_tz", TimezoneNames.US_EASTERN.value)
 
     tz = pytz.timezone(TimezoneNames.US_EASTERN.value)
     now = datetime.now(tz)
@@ -271,6 +272,7 @@ def load_and_cache(
         transform_set_index_ts(df)
 
         df = aggregate_bars(df, groupby_minutes)
+        transform_ts_result_tz(df, return_tz)
 
         logger.debug(f"--- fetched {instrument_symbol} - {date.strftime('%Y-%m-%d')}")
 
@@ -346,6 +348,11 @@ def transform_set_index_ts(df: pd.DataFrame) -> None:
 
 def transform_rename_df_columns(df) -> None:
     df.rename(columns={"date": "ts", "barCount": "bar_count"}, inplace=True)
+
+
+def transform_ts_result_tz(df: pd.DataFrame, return_tz: str) -> None:
+    return_tz_value = pytz.timezone(return_tz)
+    df.index = df.index.tz_convert(return_tz_value)
 
 
 def clean_query(query: str) -> str:
