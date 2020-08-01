@@ -60,17 +60,17 @@ class Calendar(Enum):
         return {
             Calendar.CME: [
                 # equities
-                '/ES', '/MES', '/MNQ', '/NQ', '/MNQ'
+                '/ES', '/MES', '/MNQ', '/NQ', '/MNQ',
                 # metals
                 '/GC', '/MGC',
-                # metals
+                # energy
                 '/CL', '/QM',
                 # currencies
                 '/M6A', '/M6B', '/M6E',
                 # interest rates 
                 '/GE', '/ZN', '/ZN', '/ZT',
                 # grains
-                '/ZC', '/YC', '/ZS', '/YK', '/ZW', '/YW'
+                '/ZC', '/YC', '/ZS', '/YK', '/ZW', '/YW',
             ],
             Calendar.CBOE: [],
             Calendar.ICE: [],
@@ -81,7 +81,7 @@ class Calendar(Enum):
         for k, v in Calendar.futures_lookup_hash().items():
             if symbol in v:
                 return k
-        logger.waring(f"Did not find a calendar entry for symbol={symbol}")
+        logger.warning(f"Did not find a calendar entry for symbol={symbol}")
         return Calendar.DEFAULT
 
     @staticmethod
