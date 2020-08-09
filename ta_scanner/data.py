@@ -4,10 +4,12 @@ import numpy as np
 import os
 from loguru import logger
 from ib_insync import IB, Forex, Future, ContFuture, Stock, Contract, util
-from datetime import datetime, timedelta, timezone
+
+# from datetime import datetime, timedelta, timezone, date
+import datetime
 import pytz
 from trading_calendars import get_calendar, TradingCalendar
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from ta_scanner.models import gen_engine, init_db, Quote
 
@@ -152,7 +154,7 @@ class IbDataFetcher(DataFetcherBase):
         return self._convert_bars_to_df(bars)
 
     def request_stock_instrument(
-        self, instrument_symbol: str, dt: datetime, what_to_show: str
+        self, instrument_symbol: str, dt: datetime.datetime, what_to_show: str
     ) -> pd.DataFrame:
         exchange = Exchange.SMART.value
         contract = Stock(instrument_symbol, exchange, Currency.USD.value)
@@ -189,7 +191,7 @@ class IbDataFetcher(DataFetcherBase):
     def request_future_instrument(
         self,
         symbol: str,
-        dt: datetime,
+        dt: datetime.datetime,
         what_to_show: str,
         contract_date: Optional[str] = None,
     ) -> pd.DataFrame:
@@ -242,15 +244,13 @@ def load_and_cache(
     init_db()
 
     # turn kwargs into variables
-    previous_days = int(kwargs["previous_days"])
+    start_date = extract_kwarg(kwargs, "start_date", None)
+    end_date = extract_kwarg(kwargs, "end_date", None)
+
     use_rth = extract_kwarg(kwargs, "use_rth", False)
     contract_date = extract_kwarg(kwargs, "contract_date")
     groupby_minutes = extract_kwarg(kwargs, "groupby_minutes", 1)
     return_tz = extract_kwarg(kwargs, "return_tz", TimezoneNames.US_EASTERN.value)
-
-    tz = pytz.timezone(TimezoneNames.US_EASTERN.value)
-    now = datetime.now(tz)
-    end_date = now - timedelta(days=previous_days)
 
     what_to_show = WhatToShow.TRADES.value
 
@@ -260,16 +260,16 @@ def load_and_cache(
 
     calendar = Calendar.init_by_symbol(instrument_symbol)
 
-    for date in gen_last_x_days_from(previous_days, end_date):
+    for dt in gen_datetime_range(start_date, end_date):
         # if market was closed - skip
-        if calendar.is_session(date.date()) == False:
-            continue
+        if calendar.is_session(dt.date()) == False:
+            logger.debug(f"Market closed on {dt.date()} for {instrument_symbol}")
 
         # if db already has values - skip
-        if db_data_exists(engine, instrument_symbol, date):
-            df = db_data_fetch(engine, instrument_symbol, date)
+        if db_data_exists(engine, instrument_symbol, dt):
+            df = db_data_fetch(engine, instrument_symbol, dt)
         else:
-            df = data_fetcher.request_instrument(instrument_symbol, date, what_to_show)
+            df = data_fetcher.request_instrument(instrument_symbol, dt, what_to_show)
 
             df["symbol"] = instrument_symbol
             transform_rename_df_columns(df)
@@ -293,7 +293,7 @@ def load_and_cache(
         df = aggregate_bars(df, groupby_minutes)
         transform_ts_result_tz(df, return_tz)
 
-        logger.debug(f"--- fetched {instrument_symbol} - {date.strftime('%Y-%m-%d')}")
+        logger.debug(f"--- fetched {instrument_symbol} - {dt.strftime('%Y-%m-%d')}")
 
         # temp - start
         dfs.append(df)
@@ -307,14 +307,15 @@ def load_and_cache(
     return df
 
 
-def gen_last_x_days_from(x, date):
+def gen_datetime_range(start, end) -> List[datetime.datetime]:
     result = []
-    for days_ago in range(1, x):
-        y = datetime.now() - timedelta(days=days_ago)
-        et_datetime = datetime(
-            y.year,
-            y.month,
-            y.day,
+    span = end - start
+    for i in range(span.days + 1):
+        d = start + datetime.timedelta(days=i)
+        et_datetime = datetime.datetime(
+            d.year,
+            d.month,
+            d.day,
             23,
             59,
             59,
@@ -322,6 +323,7 @@ def gen_last_x_days_from(x, date):
             pytz.timezone(TimezoneNames.US_EASTERN.value),
         )
         result.append(et_datetime)
+
     return result
 
 
@@ -378,7 +380,7 @@ def clean_query(query: str) -> str:
     return query.replace("\n", "").replace("\t", "")
 
 
-def db_data_exists(engine, instrument_symbol: str, date: datetime) -> bool:
+def db_data_exists(engine, instrument_symbol: str, date: datetime.datetime) -> bool:
     date_str: str = date.strftime("%Y-%m-%d")
 
     query = f"""
@@ -395,7 +397,9 @@ def db_data_exists(engine, instrument_symbol: str, date: datetime) -> bool:
     return counts != [(0,)]
 
 
-def db_data_fetch(engine, instrument_symbol: str, date: datetime) -> pd.DataFrame:
+def db_data_fetch(
+    engine, instrument_symbol: str, date: datetime.datetime
+) -> pd.DataFrame:
     date_str: str = date.strftime("%Y-%m-%d")
 
     query = f"""

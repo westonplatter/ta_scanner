@@ -1,3 +1,4 @@
+from datetime import date
 from loguru import logger
 import sys
 
@@ -15,7 +16,13 @@ logger.add(sys.stderr, level="INFO")
 ib_data_fetcher = IbDataFetcher()
 
 symbol = "/MGC"
-df_original = load_and_cache(symbol, ib_data_fetcher, previous_days=7, use_rth=True)
+df_original = load_and_cache(
+    symbol,
+    ib_data_fetcher,
+    start_date=date(2020, 7, 1),
+    end_date=date(2020, 7, 20),
+    use_rth=True,
+)
 
 indicator_sma_cross = IndicatorSmaCrossover()
 
@@ -67,7 +74,7 @@ headers = ["slow_sma", "fast_sma", "pnl", "count", "avg", "median"]
 
 filename = f"results/MA_Crx_{symbol.replace('/', '')}.csv"
 
-with open(filename, 'w') as f:
+with open(filename, "w") as f:
     import csv
 
     writer = csv.writer(f)

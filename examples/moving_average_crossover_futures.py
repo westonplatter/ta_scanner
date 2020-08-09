@@ -1,4 +1,6 @@
+from datetime import datetime, date
 from loguru import logger
+
 from ta_scanner.data import load_and_cache, IbDataFetcher
 from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams
 from ta_scanner.signals import Signal
@@ -6,9 +8,14 @@ from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames
 from ta_scanner.reports import BasicReport
 
 
-# get SPY data
 ib_data_fetcher = IbDataFetcher()
-df = load_and_cache("/MES", ib_data_fetcher, previous_days=7, use_rth=True)
+df = load_and_cache(
+    "/MES",
+    ib_data_fetcher,
+    start_date=date(2020, 7, 10),
+    end_date=date(2020, 7, 20),
+    use_rth=True,
+)
 
 indicator_sma_cross = IndicatorSmaCrossover()
 
