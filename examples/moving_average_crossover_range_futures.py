@@ -13,7 +13,9 @@ logger.remove()
 logger.add(sys.stderr, level="INFO")
 
 ib_data_fetcher = IbDataFetcher()
-df = load_and_cache("/MNQ", ib_data_fetcher, previous_days=30, use_rth=True)
+
+symbol = "/MGC"
+df_original = load_and_cache(symbol, ib_data_fetcher, previous_days=7, use_rth=True)
 
 indicator_sma_cross = IndicatorSmaCrossover()
 
@@ -22,6 +24,8 @@ field_name = "moving_avg_cross"
 
 
 def run_cross(fast_sma: int, slow_sma: int):
+    df = df_original.copy()
+
     indicator_params = {
         IndicatorParams.fast_sma: fast_sma,
         IndicatorParams.slow_sma: slow_sma,
@@ -33,9 +37,9 @@ def run_cross(fast_sma: int, slow_sma: int):
     sfilter = FilterCumsum()
 
     filter_options = {
-        FilterOptions.win_points: 4,
-        FilterOptions.loss_points: 2,
-        FilterOptions.threshold_intervals: 20,
+        FilterOptions.win_points: 10,
+        FilterOptions.loss_points: 3,
+        FilterOptions.threshold_intervals: 40,
     }
 
     # generate results
@@ -47,8 +51,26 @@ def run_cross(fast_sma: int, slow_sma: int):
     return pnl, count, avg, median
 
 
-slow_sma = 100
+slow_sma = 60
+
+results = []
 
 for fast_sma in range(2, slow_sma):
     pnl, count, avg, median = run_cross(fast_sma, slow_sma)
+    results.append([slow_sma, fast_sma, pnl, count, avg, median])
     print(f"MA_Crx_{fast_sma}/{slow_sma}, {pnl}, {count}, {avg}, {median}")
+
+
+# write results to csv
+
+headers = ["slow_sma", "fast_sma", "pnl", "count", "avg", "median"]
+
+filename = f"results/MA_Crx_{symbol.replace('/', '')}.csv"
+
+with open(filename, 'w') as f:
+    import csv
+
+    writer = csv.writer(f)
+    writer.writerow(headers)
+    for row in results:
+        writer.writerow(row)

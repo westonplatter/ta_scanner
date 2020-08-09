@@ -14,7 +14,7 @@ logger.add(sys.stderr, level="INFO")
 
 # get SPY data
 ib_data_fetcher = IbDataFetcher()
-df = load_and_cache("SPY", ib_data_fetcher, previous_days=30, use_rth=True)
+df_original = load_and_cache("SPY", ib_data_fetcher, previous_days=30, use_rth=True)
 
 indicator_sma_cross = IndicatorSmaCrossover()
 
@@ -23,6 +23,8 @@ field_name = "moving_avg_cross"
 
 
 def run_cross(fast_sma: int, slow_sma: int):
+    df = df_original.copy()
+
     indicator_params = {
         IndicatorParams.fast_sma: fast_sma,
         IndicatorParams.slow_sma: slow_sma,
