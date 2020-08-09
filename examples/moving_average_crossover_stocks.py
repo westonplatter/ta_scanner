@@ -8,7 +8,13 @@ from ta_scanner.reports import BasicReport
 
 # get SPY data
 ib_data_fetcher = IbDataFetcher()
-df = load_and_cache("SPY", ib_data_fetcher, previous_days=30, use_rth=True)
+df = load_and_cache(
+    "SPY",
+    ib_data_fetcher,
+    start_date=date(2020, 7, 1),
+    end_date=date(2020, 7, 20),
+    use_rth=True,
+)
 
 indicator_sma_cross = IndicatorSmaCrossover()
 
