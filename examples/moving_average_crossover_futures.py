@@ -8,7 +8,7 @@ from ta_scanner.reports import BasicReport
 
 # get SPY data
 ib_data_fetcher = IbDataFetcher()
-df = load_and_cache("/ZS", ib_data_fetcher, previous_days=30, use_rth=True)
+df = load_and_cache("/MES", ib_data_fetcher, previous_days=7, use_rth=True)
 
 indicator_sma_cross = IndicatorSmaCrossover()
 
@@ -17,8 +17,8 @@ field_name = "moving_avg_cross"
 
 # Moving Average Crossover, 20 vs 50
 indicator_params = {
-    IndicatorParams.fast_sma: 10,
-    IndicatorParams.slow_sma: 30,
+    IndicatorParams.fast_sma: 30,
+    IndicatorParams.slow_sma: 60,
 }
 # apply indicator to generate signals
 indicator_sma_cross.apply(df, field_name, indicator_params)
@@ -27,8 +27,8 @@ indicator_sma_cross.apply(df, field_name, indicator_params)
 sfilter = FilterCumsum()
 
 filter_options = {
-    FilterOptions.win_points: 5,
-    FilterOptions.loss_points: 2,
+    FilterOptions.win_points: 10,
+    FilterOptions.loss_points: 3,
     FilterOptions.threshold_intervals: 20,
 }
 
