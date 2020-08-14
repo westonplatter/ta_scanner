@@ -12,6 +12,7 @@ dependencies:
     - numpy
     - requests
     - pytz
+    - matplotlib
     # test resources
     - pytest
     - pip

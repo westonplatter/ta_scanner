@@ -127,7 +127,7 @@ class IbDataFetcher(DataFetcherBase):
         self.ib = None
 
     def _init_client(
-        self, host: str = "127.0.0.1", port: int = 4001, client_id: int = 0
+        self, host: str = "127.0.0.1", port: int = 4001, client_id: int = 4
     ) -> None:
         ib = IB()
         ib.connect(host, port, clientId=client_id)
@@ -142,14 +142,16 @@ class IbDataFetcher(DataFetcherBase):
         if self.ib is None or not self.ib.isConnected():
             self._init_client()
 
+        print(f"requesting = {dt} via {duration} and {bar_size_setting}")
+
         bars = self.ib.reqHistoricalData(
             contract,
             endDateTime=dt,
             durationStr=duration,
             barSizeSetting=bar_size_setting,
             whatToShow=what_to_show,
-            useRTH=use_rth,
-            formatDate=2,  # return as UTC time
+            useRTH=False, # use_rth,
+            # formatDate=2,  # return as UTC time
         )
         return self._convert_bars_to_df(bars)
 
@@ -158,7 +160,7 @@ class IbDataFetcher(DataFetcherBase):
     ) -> pd.DataFrame:
         exchange = Exchange.SMART.value
         contract = Stock(instrument_symbol, exchange, Currency.USD.value)
-        duration = "1 D"
+        duration = "2 D"
         bar_size_setting = "1 min"
         use_rth = False
         return self._execute_req_historical(
@@ -174,8 +176,8 @@ class IbDataFetcher(DataFetcherBase):
                 "/MNQ",
                 "/NQ",
                 "/MNQ"
-                # # currencies
-                # ? '/M6A', '/M6B', '/M6E',
+                # currencies
+                '/M6A', '/M6B', '/M6E',
                 # # interest rates
                 # ? '/GE', '/ZN', '/ZN', '/ZT',
             ],
@@ -202,7 +204,7 @@ class IbDataFetcher(DataFetcherBase):
         else:
             contract = ContFuture(symbol, exchange_name, currency=Currency.USD.value)
 
-        duration = "1 D"
+        duration = "2 D"
         bar_size_setting = "1 min"
         use_rth = False
         return self._execute_req_historical(
@@ -225,6 +227,7 @@ def extract_kwarg(kwargs: Dict, key: str, default_value: Any = None) -> Optional
         return kwargs[key]
     else:
         return default_value
+
 
 
 def load_and_cache(
@@ -262,38 +265,42 @@ def load_and_cache(
 
     for dt in gen_datetime_range(start_date, end_date):
         # if market was closed - skip
-        if calendar.is_session(dt.date()) == False:
-            logger.debug(f"Market closed on {dt.date()} for {instrument_symbol}")
+        # if calendar.is_session(dt.date()) == False:
+        #     logger.debug(f"Market closed on {dt.date()} for {instrument_symbol}")
 
         # if db already has values - skip
-        if db_data_exists(engine, instrument_symbol, dt):
-            df = db_data_fetch(engine, instrument_symbol, dt)
-        else:
+        # if db_data_exists(engine, instrument_symbol, dt):
+        #     df = db_data_fetch(engine, instrument_symbol, dt)
+        # else:
+        if True:
             df = data_fetcher.request_instrument(instrument_symbol, dt, what_to_show)
 
             df["symbol"] = instrument_symbol
             transform_rename_df_columns(df)
             # convert time from UTC to US/Eastern
-            df["ts"] = df["ts"].dt.tz_convert(TimezoneNames.US_EASTERN.value)
+            # df["ts"] = df["ts"].dt.tz_convert(TimezoneNames.US_EASTERN.value)
+            df["ts"] = df["ts"].dt.tz_localize(TimezoneNames.US_EASTERN.value)
             apply_rth(df, calendar)
 
-            try:
-                # cache df values
-                df.to_sql(
-                    "quote", con=engine, if_exists="append", index=False, chunksize=1
-                )
-            except Exception as e:
-                logger.error(e)
+            for k, v in df.groupby('ts'):
+                try:
+                    # cache df values
+                    v.to_sql(
+                        "quote", con=engine, if_exists="append", index=False, chunksize=1
+                    )
+                except Exception as e:
+                    # logger.error(e)
+                    pass
 
-        if use_rth:
-            df = reduce_to_only_rth(df)
+        # if use_rth:
+        #     df = reduce_to_only_rth(df)
 
         transform_set_index_ts(df)
 
         df = aggregate_bars(df, groupby_minutes)
         transform_ts_result_tz(df, return_tz)
 
-        logger.debug(f"--- fetched {instrument_symbol} - {dt.strftime('%Y-%m-%d')}")
+        logger.debug(f"--- fetched {instrument_symbol} - {dt}")
 
         # temp - start
         dfs.append(df)
@@ -322,7 +329,10 @@ def gen_datetime_range(start, end) -> List[datetime.datetime]:
             0,
             pytz.timezone(TimezoneNames.US_EASTERN.value),
         )
-        result.append(et_datetime)
+        # 'yyyyMMdd HH:mm:ss’
+        date_str = et_datetime.strftime("%Y%m%d %H:%M:%S")
+        # result.append(et_datetime)
+        result.append(date_str)
 
     return result
 
@@ -384,11 +394,11 @@ def db_data_exists(engine, instrument_symbol: str, date: datetime.datetime) -> b
     date_str: str = date.strftime("%Y-%m-%d")
 
     query = f"""
-        select count(*) 
+        select count(*)
         from {Quote.__tablename__}
         where
             symbol = '{instrument_symbol}'
-            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}') 
+            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}')
     """
     with engine.connect() as con:
         result = con.execute(clean_query(query))
@@ -405,8 +415,24 @@ def db_data_fetch(
     query = f"""
         select *
         from {Quote.__tablename__}
-        where 
+        where
             symbol = '{instrument_symbol}'
             and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') = date('{date_str}')
+    """
+    return pd.read_sql(clean_query(query), con=engine)
+
+
+def db_data_fetch_between(
+    engine, instrument_symbol: str, sd: datetime.datetime, ed: datetime.datetime
+) -> pd.DataFrame:
+    sd_str: str = sd.strftime("%Y-%m-%d")
+    ed_str: str = ed.strftime("%Y-%m-%d")
+
+    query = f"""
+        select *
+        from {Quote.__tablename__}
+        where
+            symbol = '{instrument_symbol}'
+            and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') BETWEEN date('{sd}') AND date('{ed}')
     """
     return pd.read_sql(clean_query(query), con=engine)
