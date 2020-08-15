@@ -15,9 +15,9 @@ def test_abstract_methods_present():
 
 
 def test_required_filter_options():
-    field_name="indicator_name"
+    field_name = "indicator_name"
     df = gen_df_zeros(field_name)
-    
+
     params: Dict[FilterOptions, Any] = {
         FilterOptions.win_points: 20.0,
         FilterOptions.loss_points: 10.0,

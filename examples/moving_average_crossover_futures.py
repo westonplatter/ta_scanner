@@ -27,7 +27,9 @@ indicator_params = {
 }
 
 # init
-indicator_sma_cross = IndicatorSmaCrossover(field_name=field_name, params=indicator_params)
+indicator_sma_cross = IndicatorSmaCrossover(
+    field_name=field_name, params=indicator_params
+)
 
 # apply indicator to generate signals
 indicator_sma_cross.apply(df)

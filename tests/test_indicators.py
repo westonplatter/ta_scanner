@@ -21,7 +21,7 @@ def test_abstract_methods_present():
 def test_ensure_required_filter_options():
     field_name = "fake_some_name"
     fake_df = gen_df_zeros(field_name)
-    
+
     params = {
         IndicatorParams.fast_sma: 20,
         # IndicatorParams.slow_sma: 50, # intentionally missing param

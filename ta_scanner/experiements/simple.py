@@ -1,17 +1,20 @@
 class Simple:
-    def __init__(self, df_train, df_test, indicator, indicator_params, sfilter, sfilter_params):
+    def __init__(
+        self, df_train, df_test, indicator, indicator_params, sfilter, sfilter_params
+    ):
         self.df_train = df_train
         self.df_test = df_test
         self.indicator = indicator
         self.indicator_params = indicator_params
         self.sfilter = sfilter
         self.sfilter_params = sfilter_params
-    
-    # the goal here is to 
+
+    # the goal here is to
     # - apply range of indicators configs to the train data
     # - pick a couple of the bottom, middle, and top results
     # - apply those to the test data
     # - analyze how well they translate
+
 
 # indicator_sma_cross = IndicatorSmaCrossover()
 

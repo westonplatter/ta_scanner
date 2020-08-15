@@ -3,13 +3,15 @@ import pandas as pd
 import numpy as np
 import os
 from loguru import logger
-from ib_insync import IB, Forex, Future, ContFuture, Stock, Contract, util
+from ib_insync import IB, Forex, Future, ContFuture, Stock, Contract
+from ib_insync import util as ib_insync_util
+from psycopg2 import sql
 
 # from datetime import datetime, timedelta, timezone, date
 import datetime
 import pytz
 from trading_calendars import get_calendar, TradingCalendar
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 
 from ta_scanner.models import gen_engine, init_db, Quote
 
@@ -19,6 +21,7 @@ class TimezoneNames(Enum):
     US_CENTRAL = "US/Central"
     US_MOUNTAIN = "US/Mountain"
     US_PACIFIC = "US/Pacific"
+    UTC = "UTC"
 
 
 class WhatToShow(Enum):
@@ -123,18 +126,16 @@ class DataFetcherBase(object, metaclass=ABCMeta):
 
 
 class IbDataFetcher(DataFetcherBase):
-    def __init__(self):
+    def __init__(self, client_id: int = 0):
         self.ib = None
+        self.client_id = client_id
 
     def _init_client(
-        self, host: str = "127.0.0.1", port: int = 4001, client_id: int = 4
+        self, host: str = "127.0.0.1", port: int = 4001
     ) -> None:
         ib = IB()
-        ib.connect(host, port, clientId=client_id)
+        ib.connect(host, port, clientId=self.client_id)
         self.ib = ib
-
-    def _convert_bars_to_df(self, bars) -> pd.DataFrame:
-        return util.df(bars)
 
     def _execute_req_historical(
         self, contract, dt, duration, bar_size_setting, what_to_show, use_rth
@@ -142,18 +143,22 @@ class IbDataFetcher(DataFetcherBase):
         if self.ib is None or not self.ib.isConnected():
             self._init_client()
 
-        print(f"requesting = {dt} via {duration} and {bar_size_setting}")
-
-        bars = self.ib.reqHistoricalData(
-            contract,
-            endDateTime=dt,
-            durationStr=duration,
-            barSizeSetting=bar_size_setting,
-            whatToShow=what_to_show,
-            useRTH=False, # use_rth,
-            # formatDate=2,  # return as UTC time
-        )
-        return self._convert_bars_to_df(bars)
+        dfs = []
+        for rth in [True, False]:
+            bars = self.ib.reqHistoricalData(
+                contract,
+                endDateTime=dt,
+                durationStr=duration,
+                barSizeSetting=bar_size_setting,
+                whatToShow=what_to_show,
+                useRTH=rth,  # use_rth,
+                formatDate=2,  # return as UTC time
+            )
+            x = ib_insync_util.df(bars)
+            x['rth'] = rth
+            dfs.append(x)
+        df = pd.concat(dfs).drop_duplicates().reset_index(drop=True)
+        return df
 
     def request_stock_instrument(
         self, instrument_symbol: str, dt: datetime.datetime, what_to_show: str
@@ -177,7 +182,9 @@ class IbDataFetcher(DataFetcherBase):
                 "/NQ",
                 "/MNQ"
                 # currencies
-                '/M6A', '/M6B', '/M6E',
+                "/M6A",
+                "/M6B",
+                "/M6E",
                 # # interest rates
                 # ? '/GE', '/ZN', '/ZN', '/ZT',
             ],
@@ -204,7 +211,7 @@ class IbDataFetcher(DataFetcherBase):
         else:
             contract = ContFuture(symbol, exchange_name, currency=Currency.USD.value)
 
-        duration = "2 D"
+        duration = "1 D"
         bar_size_setting = "1 min"
         use_rth = False
         return self._execute_req_historical(
@@ -227,7 +234,6 @@ def extract_kwarg(kwargs: Dict, key: str, default_value: Any = None) -> Optional
         return kwargs[key]
     else:
         return default_value
-
 
 
 def load_and_cache(
@@ -278,22 +284,13 @@ def load_and_cache(
             df["symbol"] = instrument_symbol
             transform_rename_df_columns(df)
             # convert time from UTC to US/Eastern
-            # df["ts"] = df["ts"].dt.tz_convert(TimezoneNames.US_EASTERN.value)
-            df["ts"] = df["ts"].dt.tz_localize(TimezoneNames.US_EASTERN.value)
-            apply_rth(df, calendar)
+            # df["ts"] = df["ts"].dt.tz_convert(TimezoneNames.UTC.value)
+            # df["ts"] = df["ts"].dt.tz_localize(TimezoneNames.US_EASTERN.value)
+            # apply_rth(df, calendar)
+            db_insert_df_conflict_on_do_nothing(engine, df, "quote")
 
-            for k, v in df.groupby('ts'):
-                try:
-                    # cache df values
-                    v.to_sql(
-                        "quote", con=engine, if_exists="append", index=False, chunksize=1
-                    )
-                except Exception as e:
-                    # logger.error(e)
-                    pass
-
-        # if use_rth:
-        #     df = reduce_to_only_rth(df)
+        if use_rth:
+            df = reduce_to_only_rth(df)
 
         transform_set_index_ts(df)
 
@@ -319,21 +316,7 @@ def gen_datetime_range(start, end) -> List[datetime.datetime]:
     span = end - start
     for i in range(span.days + 1):
         d = start + datetime.timedelta(days=i)
-        et_datetime = datetime.datetime(
-            d.year,
-            d.month,
-            d.day,
-            23,
-            59,
-            59,
-            0,
-            pytz.timezone(TimezoneNames.US_EASTERN.value),
-        )
-        # 'yyyyMMdd HH:mm:ss’
-        date_str = et_datetime.strftime("%Y%m%d %H:%M:%S")
-        # result.append(et_datetime)
-        result.append(date_str)
-
+        result.append(datetime.date(d.year, d.month, d.day))
     return result
 
 
@@ -436,3 +419,44 @@ def db_data_fetch_between(
             and date(ts AT TIME ZONE '{TimezoneNames.US_EASTERN.value}') BETWEEN date('{sd}') AND date('{ed}')
     """
     return pd.read_sql(clean_query(query), con=engine)
+
+
+def db_insert_df_conflict_on_do_nothing(
+    engine, df: pd.DataFrame, table_name: str
+) -> None:
+    cols = __gen_cols(df)
+    values = __gen_values(df)
+
+    query_template = """
+        INSERT INTO {table_name} ({cols})
+        VALUES ({values});
+    """
+
+    query = sql.SQL(query_template).format(
+        table_name=sql.Identifier(table_name),
+        cols=sql.SQL(", ").join(map(sql.Identifier, cols)),
+        values=sql.SQL(", ").join(sql.Placeholder() * len(cols)),
+    )
+
+    with engine.connect() as con:
+        with con.connection.cursor() as cur:
+            for v in values:
+                try:
+                    cur.execute(query, v)
+                except Exception as e:
+                    pass
+        con.connection.commit()
+
+
+def __gen_values(df: pd.DataFrame) -> List[Tuple[str]]:
+    """
+    return array of tuples for the df values
+    """
+    return [tuple([str(xx) for xx in x]) for x in df.to_records(index=False)]
+
+
+def __gen_cols(df) -> List[str]:
+    """
+    return column names
+    """
+    return list(df.columns)

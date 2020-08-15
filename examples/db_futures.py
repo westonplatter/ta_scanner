@@ -13,8 +13,8 @@ for symbol in future_symbols:
     df = load_and_cache(
         symbol,
         ib_data_fetcher,
-        start_date=datetime.date(2020, 8, 1),
-        end_date=datetime.date(2020, 8, 13),
+        start_date=datetime.date(2020, 8, 2),
+        end_date=datetime.date(2020, 8, 10),
         # use_rth=False,
         # groupby_minutes=1,
     )
