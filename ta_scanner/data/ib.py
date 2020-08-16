@@ -67,10 +67,14 @@ class IbDataFetcher(DataFetcherBase):
         d = {
             Exchange.GLOBEX: [
                 # equities
-                "/ES", "/MES",
-                "/NQ", "/MNQ"
+                "/ES",
+                "/MES",
+                "/NQ",
+                "/MNQ"
                 # currencies
-                "/M6A", "/M6B", "/M6E",
+                "/M6A",
+                "/M6B",
+                "/M6E",
                 # # interest rates
                 # ? '/GE', '/ZN', '/ZN', '/ZT',
             ],

@@ -4,6 +4,7 @@
         "GLOBEX",
         "NYMEX",
         "groupby",
-        "insync"
+        "insync",
+        "sfilter"
     ]
 }

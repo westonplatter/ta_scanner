@@ -8,12 +8,7 @@ ib_data_fetcher = IbDataFetcher()
 symbol = "/MES"
 sd = datetime.date(2020, 8, 2)
 ed = datetime.date(2020, 8, 4)
-params = dict(
-    start_date=sd,
-    end_date=ed,
-    use_rth=False,
-    groupby_minutes=1,
-)
+params = dict(start_date=sd, end_date=ed, use_rth=False, groupby_minutes=1,)
 
 df = load_and_cache(symbol, ib_data_fetcher, **params)
 logger.info(f"{symbol} - All hours / 1min bars - {len(df.index)}")
