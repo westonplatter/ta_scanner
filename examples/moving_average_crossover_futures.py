@@ -1,7 +1,8 @@
 from datetime import datetime, date
 from loguru import logger
 
-from ta_scanner.data import load_and_cache, IbDataFetcher
+from ta_scanner.data.data import load_and_cache
+from ta_scanner.data.ib import IbDataFetcher
 from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams
 from ta_scanner.signals import Signal
 from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames
@@ -17,8 +18,6 @@ df = load_and_cache(
     use_rth=True,
 )
 
-indicator_sma_cross = IndicatorSmaCrossover()
-
 # store signals in this field
 field_name = "moving_avg_cross"
 
@@ -27,20 +26,26 @@ indicator_params = {
     IndicatorParams.fast_sma: 30,
     IndicatorParams.slow_sma: 60,
 }
-# apply indicator to generate signals
-indicator_sma_cross.apply(df, field_name, indicator_params)
 
-# initialize filter
-sfilter = FilterCumsum()
+# init
+indicator_sma_cross = IndicatorSmaCrossover(
+    field_name=field_name, params=indicator_params
+)
+
+# apply indicator to generate signals
+indicator_sma_cross.apply(df)
+
 
 filter_options = {
     FilterOptions.win_points: 10,
     FilterOptions.loss_points: 3,
     FilterOptions.threshold_intervals: 20,
 }
+# initialize filter
+sfilter = FilterCumsum(field_name=field_name, params=filter_options)
 
 # generate results
-results = sfilter.apply(df, field_name, filter_options)
+results = sfilter.apply(df)
 
 # analyze results
 basic_report = BasicReport()

@@ -28,8 +28,9 @@ class IndicatorException(Exception):
 
 
 class BaseIndicator(metaclass=abc.ABCMeta):
-    def __init__(self):
-        pass
+    def __init__(self, field_name: str, params: Dict[IndicatorParams, Any]):
+        self.field_name = field_name
+        self.params = params
 
     def ensure_required_filter_options(
         self, expected: List[IndicatorParams], actual: Dict[IndicatorParams, Any]
@@ -47,17 +48,15 @@ class BaseIndicator(metaclass=abc.ABCMeta):
 
 
 class IndicatorSmaCrossover(BaseIndicator):
-    def apply(
-        self, df: pd.DataFrame, field_name: str, params: Dict[IndicatorParams, Any]
-    ) -> None:
+    def apply(self, df: pd.DataFrame) -> None:
         self.ensure_required_filter_options(
-            [IndicatorParams.fast_sma, IndicatorParams.slow_sma], params
+            [IndicatorParams.fast_sma, IndicatorParams.slow_sma], self.params
         )
-        slow_sma = params[IndicatorParams.slow_sma]
-        fast_sma = params[IndicatorParams.fast_sma]
+        slow_sma = self.params[IndicatorParams.slow_sma]
+        fast_sma = self.params[IndicatorParams.fast_sma]
 
         sma = abstract.Function("sma")
         df["slow_sma"] = sma(df.close, timeperiod=slow_sma)
         df["fast_sma"] = sma(df.close, timeperiod=fast_sma)
-        df[field_name] = crossover(df.fast_sma - df.slow_sma)
+        df[self.field_name] = crossover(df.fast_sma - df.slow_sma)
         return df
