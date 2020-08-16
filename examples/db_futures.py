@@ -1,35 +1,29 @@
 from loguru import logger
-from ta_scanner.data import load_and_cache, IbDataFetcher
+from ta_scanner.data.data import load_and_cache
+from ta_scanner.data.ib_connector import IbDataFetcher
 import datetime
 
 ib_data_fetcher = IbDataFetcher()
 
-# future_symbols = ["/MES", "/MNQ", "/ZS", "/GC"]
-# future_symbols = ["/M6E"]
-# future_symbols = ["/MGC"]
-future_symbols = ["/MES"]
+symbol = "/MES"
+sd = datetime.date(2020, 8, 2)
+ed = datetime.date(2020, 8, 4)
+params = dict(
+    start_date=sd,
+    end_date=ed,
+    use_rth=False,
+    groupby_minutes=1,
+)
 
-for symbol in future_symbols:
-    df = load_and_cache(
-        symbol,
-        ib_data_fetcher,
-        start_date=datetime.date(2020, 8, 2),
-        end_date=datetime.date(2020, 8, 10),
-        # use_rth=False,
-        # groupby_minutes=1,
-    )
-    logger.info(f"{symbol} - {len(df.index)}")
-    logger.info(f"{symbol} - first data row = {df.head(1)}")
+# df = load_and_cache(symbol, ib_data_fetcher, **params)
+# logger.info(f"{symbol} - All hours / 1min bars - {len(df.index)}")
 
-# for symbol in future_symbols:
-#     df = load_and_cache(
-#         symbol,
-#         ib_data_fetcher,
-#         start_date=datetime.date(2020, 7, 10),
-#         end_date=datetime.date(2020, 7, 20),
-#         use_rth=False,
-#         groupby_minutes=1,
-#         return_tz="US/Mountain",
-#     )
-#     logger.info(f"{symbol} - {len(df.index)}")
-#     logger.info(f"{symbol} - first data row = {df.head(1)}")
+# params["use_rth"] = True
+# df = load_and_cache(symbol, ib_data_fetcher, **params)
+# logger.info(f"{symbol} - Only RTH / 1min bars - {len(df.index)}")
+
+params["use_rth"] = False
+params["groupby_minutes"] = 12
+df = load_and_cache(symbol, ib_data_fetcher, **params)
+logger.info(f"{symbol} - All hours / 12min bars - {len(df.index)}")
+logger.info(f"\n{df.head(10)}")

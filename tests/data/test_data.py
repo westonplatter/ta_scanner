@@ -1,5 +1,5 @@
 import pandas as pd
-from ta_scanner.data import (
+from ta_scanner.data.data import (
     __gen_values,
     __gen_cols,
     db_insert_df_conflict_on_do_nothing,
