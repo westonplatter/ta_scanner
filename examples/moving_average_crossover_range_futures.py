@@ -2,7 +2,8 @@ from datetime import date
 from loguru import logger
 import sys
 
-from ta_scanner.data import load_and_cache, IbDataFetcher
+from ta_scanner.data.data import load_and_cache
+from ta_scanner.data.ib import IbDataFetcher
 from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams
 from ta_scanner.signals import Signal
 from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames

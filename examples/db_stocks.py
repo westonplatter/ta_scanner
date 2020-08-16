@@ -1,6 +1,7 @@
 from datetime import date
 from loguru import logger
-from ta_scanner.data import load_and_cache, IbDataFetcher
+from ta_scanner.data.data import load_and_cache
+from ta_scanner.data.ib import IbDataFetcher
 
 ib_data_fetcher = IbDataFetcher()
 
@@ -11,7 +12,7 @@ for symbol in symbols:
         symbol,
         ib_data_fetcher,
         start_date=date(2020, 6, 1),
-        end_date=date(2020, 6, 30),
+        end_date=date(2020, 6, 4),
         use_rth=False,
         groupby_minutes=15,
     )
