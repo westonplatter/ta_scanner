@@ -1,4 +1,13 @@
-class Simple:
+from abc import ABC
+
+
+class BaseExperiment(ABC):
+    @staticmethod
+    def x() -> str:
+        return "x"
+
+
+class SimpleExperiment(BaseExperiment):
     def __init__(
         self, df_train, df_test, indicator, indicator_params, sfilter, sfilter_params
     ):
