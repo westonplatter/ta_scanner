@@ -66,13 +66,15 @@ class IbDataFetcher(DataFetcherBase):
     def select_exchange_by_symbol(self, symbol):
         d = {
             Exchange.GLOBEX: [
+                # fmt: off
                 # equities
                 "/ES", "/MES",
                 "/NQ", "/MNQ"
                 # currencies
                 "/M6A", "/M6B", "/M6E",
-                # # interest rates
-                # ? '/GE', '/ZN', '/ZN', '/ZT',
+                # interest rates
+                # '/GE', '/ZN', '/ZN', '/ZT',
+                # fmt: on
             ],
             Exchange.ECBOT: ["/ZC", "/YC", "/ZS", "/YK", "/ZW", "/YW"],
             Exchange.NYMEX: ["/GC", "/MGC", "/CL", "/QM",],

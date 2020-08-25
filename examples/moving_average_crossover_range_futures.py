@@ -1,13 +1,14 @@
-from datetime import date
+import datetime
 from loguru import logger
 import sys
 
-from ta_scanner.data.data import load_and_cache
+from ta_scanner.data.data import load_and_cache, db_data_fetch_between, aggregate_bars
 from ta_scanner.data.ib import IbDataFetcher
 from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams
 from ta_scanner.signals import Signal
 from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames
 from ta_scanner.reports import BasicReport
+from ta_scanner.models import gen_engine
 
 
 # mute the noisy data debug statements
@@ -17,15 +18,28 @@ logger.add(sys.stderr, level="INFO")
 ib_data_fetcher = IbDataFetcher()
 
 symbol = "/MGC"
+
 df_original = load_and_cache(
     symbol,
     ib_data_fetcher,
-    start_date=date(2020, 7, 1),
-    end_date=date(2020, 7, 20),
-    use_rth=True,
+    start_date=datetime.date(2020, 8, 1),
+    end_date=datetime.date(2020, 8, 23),
 )
 
-indicator_sma_cross = IndicatorSmaCrossover()
+
+def query_data(engine, symbol, sd, ed, groupby_minutes):
+    df = db_data_fetch_between(engine, symbol, sd, ed)
+    df.set_index("ts", inplace=True)
+    df = aggregate_bars(df, groupby_minutes=groupby_minutes)
+    df["ts"] = df.index
+    return df
+
+
+engine = gen_engine()
+sd, ed = datetime.date(2020, 8, 1), datetime.date(2020, 8, 23)
+interval = 1
+df_original = query_data(engine, symbol, sd, ed, interval)
+
 
 # store signals in this field
 field_name = "moving_avg_cross"
@@ -38,24 +52,20 @@ def run_cross(fast_sma: int, slow_sma: int):
         IndicatorParams.fast_sma: fast_sma,
         IndicatorParams.slow_sma: slow_sma,
     }
-    # apply indicator to generate signals
-    indicator_sma_cross.apply(df, field_name, indicator_params)
-
-    # initialize filter
-    sfilter = FilterCumsum()
+    indicator = IndicatorSmaCrossover(field_name, indicator_params)
+    indicator.apply(df)
 
     filter_options = {
-        FilterOptions.win_points: 10,
-        FilterOptions.loss_points: 3,
-        FilterOptions.threshold_intervals: 40,
+        FilterOptions.win_points: 6,
+        FilterOptions.loss_points: 4,
+        FilterOptions.threshold_intervals: 30,
     }
-
-    # generate results
-    results = sfilter.apply(df, field_name, filter_options)
+    sfilter = FilterCumsum(field_name, filter_options)
+    results = sfilter.apply(df)
 
     # get aggregate pnl
     basic_report = BasicReport()
-    pnl, count, avg, median = basic_report.analyze(df, FilterNames.filter_cumsum.value)
+    pnl, count, avg, median = basic_report.analyze(df, field_name)
     return pnl, count, avg, median
 
 
