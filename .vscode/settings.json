@@ -5,6 +5,7 @@
         "NYMEX",
         "groupby",
         "insync",
+        "iterrows",
         "sfilter",
         "strftime"
     ]

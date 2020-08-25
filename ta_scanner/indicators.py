@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 class IndicatorParams(Enum):
     slow_sma = "slow_sma"
     fast_sma = "fast_sma"
+    slow_ema = "slow_ema"
+    fast_ema = "fast_ema"
 
 
 def crossover(series, value=0):
@@ -59,4 +61,18 @@ class IndicatorSmaCrossover(BaseIndicator):
         df["slow_sma"] = sma(df.close, timeperiod=slow_sma)
         df["fast_sma"] = sma(df.close, timeperiod=fast_sma)
         df[self.field_name] = crossover(df.fast_sma - df.slow_sma)
+        return df
+
+class IndicatorEmaCrossover(BaseIndicator):
+    def apply(self, df: pd.DataFrame) -> None:
+        self.ensure_required_filter_options(
+            [IndicatorParams.fast_ema, IndicatorParams.slow_ema], self.params
+        )
+        slow_ema = self.params[IndicatorParams.slow_ema]
+        fast_ema = self.params[IndicatorParams.fast_ema]
+
+        ema = abstract.Function("ema")
+        df["slow_ema"] = ema(df.close, timeperiod=slow_ema)
+        df["fast_ema"] = ema(df.close, timeperiod=fast_ema)
+        df[self.field_name] = crossover(df.fast_ema - df.slow_ema)
         return df

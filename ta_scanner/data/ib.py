@@ -46,6 +46,8 @@ class IbDataFetcher(DataFetcherBase):
                 formatDate=2,  # return as UTC time
             )
             x = ib_insync_util.df(bars)
+            if x is None:
+                import ipdb; ipdb.set_trace()
             x["rth"] = rth
             dfs.append(x)
         df = pd.concat(dfs).drop_duplicates().reset_index(drop=True)
