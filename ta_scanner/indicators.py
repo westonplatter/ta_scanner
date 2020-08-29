@@ -11,6 +11,8 @@ class IndicatorParams(Enum):
     fast_sma = "fast_sma"
     slow_ema = "slow_ema"
     fast_ema = "fast_ema"
+    trailing_bars = "trailing_bars"
+    from_field_name = "from_field_name"
 
 
 def crossover(series, value=0):
@@ -35,10 +37,10 @@ class BaseIndicator(metaclass=abc.ABCMeta):
         self.params = params
 
     def ensure_required_filter_options(
-        self, expected: List[IndicatorParams], actual: Dict[IndicatorParams, Any]
+        self, expected: List[IndicatorParams]
     ):
         for expected_key in expected:
-            if expected_key not in actual:
+            if expected_key not in self.params:
                 indicator_name = self.__class__.__name__
                 raise IndicatorException(
                     f"{indicator_name} requires key = {expected_key}"
@@ -51,9 +53,7 @@ class BaseIndicator(metaclass=abc.ABCMeta):
 
 class IndicatorSmaCrossover(BaseIndicator):
     def apply(self, df: pd.DataFrame) -> None:
-        self.ensure_required_filter_options(
-            [IndicatorParams.fast_sma, IndicatorParams.slow_sma], self.params
-        )
+        self.ensure_required_filter_options([IndicatorParams.fast_sma, IndicatorParams.slow_sma])
         slow_sma = self.params[IndicatorParams.slow_sma]
         fast_sma = self.params[IndicatorParams.fast_sma]
 
@@ -66,9 +66,7 @@ class IndicatorSmaCrossover(BaseIndicator):
 
 class IndicatorEmaCrossover(BaseIndicator):
     def apply(self, df: pd.DataFrame) -> None:
-        self.ensure_required_filter_options(
-            [IndicatorParams.fast_ema, IndicatorParams.slow_ema], self.params
-        )
+        self.ensure_required_filter_options([IndicatorParams.fast_ema, IndicatorParams.slow_ema])
         slow_ema = self.params[IndicatorParams.slow_ema]
         fast_ema = self.params[IndicatorParams.fast_ema]
 
@@ -77,3 +75,29 @@ class IndicatorEmaCrossover(BaseIndicator):
         df["fast_ema"] = ema(df.close, timeperiod=fast_ema)
         df[self.field_name] = crossover(df.fast_ema - df.slow_ema)
         return df
+
+
+class VWAPTrailing(BaseIndicator):
+    def apply(self, df: pd.DataFrame) -> None:
+        self.ensure_required_filter_options([IndicatorParams.trailing_bars])
+        trailing_bars: int = self.params[IndicatorParams.trailing_bars]
+        
+        # definition for VWAP = https://www.investopedia.com/articles/trading/11/trading-with-vwap-mvwap.asp
+        tpv = ((df.high + df.low + df.close) / 3.0) * df.volume
+        cum_tpv = tpv.rolling(trailing_bars, min_periods=trailing_bars).sum()
+        cum_vol = df.volume.rolling(trailing_bars, min_periods=trailing_bars).sum()
+        df[self.field_name] = cum_tpv/cum_vol
+
+
+class StdDeviationTrailing(BaseIndicator):
+    def apply(self, df: pd.DataFrame) -> None:
+        self.ensure_required_filter_options([IndicatorParams.trailing_bars])
+        
+        trailing_bars: int = self.params[IndicatorParams.trailing_bars]
+        from_field_name: str = self.params[IndicatorParams.from_field_name]
+
+        series = df[from_field_name]
+
+        # todo - answer - what is the close price that's 2 std deviations away
+
+        import ipdb; ipdb.set_trace()

@@ -11,8 +11,10 @@ dependencies:
     - psycopg2
     - numpy
     - requests
+    - scipy
     - pytz
     - matplotlib
+    - tqdm
     # test resources
     - pytest
     - pip

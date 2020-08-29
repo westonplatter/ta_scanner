@@ -90,8 +90,6 @@ def load_and_cache(
         df = aggregate_bars(df, groupby_minutes)
         transform_ts_result_tz(df, return_tz)
 
-        logger.debug(f"--- fetched {instrument_symbol} - {dt}")
-
         # temp - start
         dfs.append(df)
         # temp - stop

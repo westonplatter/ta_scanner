@@ -5,7 +5,7 @@ from ta_scanner.data.data import load_and_cache
 from ta_scanner.data.ib import IbDataFetcher
 from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams
 from ta_scanner.signals import Signal
-from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames
+from ta_scanner.filters import FilterCumsum, FilterParams, FilterNames
 from ta_scanner.reports import BasicReport
 
 
@@ -37,9 +37,9 @@ indicator_sma_cross.apply(df)
 
 
 filter_options = {
-    FilterOptions.win_points: 10,
-    FilterOptions.loss_points: 3,
-    FilterOptions.threshold_intervals: 20,
+    FilterParams.win_points: 10,
+    FilterParams.loss_points: 3,
+    FilterParams.threshold_intervals: 20,
 }
 # initialize filter
 sfilter = FilterCumsum(field_name=field_name, params=filter_options)

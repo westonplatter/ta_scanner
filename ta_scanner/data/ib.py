@@ -1,12 +1,11 @@
-import pandas as pd
-from loguru import logger
-
 import datetime
-from trading_calendars import get_calendar, TradingCalendar
-from typing import Optional, Dict, Any, List, Tuple
-
 from ib_insync import IB, Future, ContFuture, Stock, Contract
 from ib_insync import util as ib_insync_util
+import pandas as pd
+from loguru import logger
+import time
+from trading_calendars import get_calendar, TradingCalendar
+from typing import Optional, Dict, Any, List, Tuple
 
 from ta_scanner.data.base_connector import DataFetcherBase
 from ta_scanner.data.constants import (
@@ -23,6 +22,12 @@ class IbDataFetcher(DataFetcherBase):
         self.ib = None
         self.client_id = client_id
 
+    def log_progress_action(self, message: str) -> None:
+        logger.debug(message)
+
+    def expected_1min_data_points(self, symbol: str, dt: datetime.date) -> int:
+        return 1
+
     def _init_client(self, host: str = "127.0.0.1", port: int = 4001) -> None:
         ib = IB()
         ib.connect(host, port, clientId=self.client_id)
@@ -36,6 +41,8 @@ class IbDataFetcher(DataFetcherBase):
 
         dfs = []
         for rth in [True, False]:
+            self.log_progress_action(f"Request initiated {contract} @ {dt} rth={rth}")
+            start = time.time()
             bars = self.ib.reqHistoricalData(
                 contract,
                 endDateTime=dt,
@@ -46,7 +53,16 @@ class IbDataFetcher(DataFetcherBase):
                 formatDate=2,  # return as UTC time
             )
             x = ib_insync_util.df(bars)
-            x["rth"] = rth
+            end = time.time()
+            _duration = "{0:.2f}s".format(end-start)
+            self.log_progress_action(f"Response received {contract} @ {dt} rth={rth}. Duration = {_duration}")
+
+            try:
+                x["rth"] = rth
+            except Exception as e:
+                import ipdb; ipdb.set_trace()
+                continue
+
             dfs.append(x)
         df = pd.concat(dfs).drop_duplicates().reset_index(drop=True)
         return df
@@ -64,25 +80,35 @@ class IbDataFetcher(DataFetcherBase):
         )
 
     def select_exchange_by_symbol(self, symbol):
-        d = {
-            Exchange.GLOBEX: [
-                # fmt: off
-                # equities
-                "/ES", "/MES",
-                "/NQ", "/MNQ"
-                # currencies
-                "/M6A", "/M6B", "/M6E",
-                # interest rates
-                # '/GE', '/ZN', '/ZN', '/ZT',
-                # fmt: on
-            ],
-            Exchange.ECBOT: ["/ZC", "/YC", "/ZS", "/YK", "/ZW", "/YW"],
-            Exchange.NYMEX: ["/GC", "/MGC", "/CL", "/QM",],
+        symbol_exchange_kvs = {
+            # equities
+            "/MES": Exchange.GLOBEX,
+            "/ES": Exchange.GLOBEX,
+            "/MNQ": Exchange.GLOBEX,
+            "/NQ": Exchange.GLOBEX,
+            # metals
+            "/MGC": Exchange.NYMEX,
+            "/GC": Exchange.NYMEX,
+            # energy
+            # "/QM": Exchange.NYMEX, # @todo(weston) not working 
+            # "/CL": Exchange.NYMEX, # @todo(weston) not working
+            # currencies
+            "/M6A": Exchange.GLOBEX,
+            "/M6B": Exchange.GLOBEX,
+            "/M6E": Exchange.GLOBEX,
+            # rates
+            "/ZT": Exchange.ECBOT,
+            "/ZN": Exchange.ECBOT,
+            "/ZF": Exchange.ECBOT,
+            "/ZB": Exchange.ECBOT,
+            # grains
+            "/ZS": Exchange.ECBOT,
+            "/ZC": Exchange.ECBOT,
+            "/ZW": Exchange.ECBOT,
         }
 
-        for k, v in d.items():
-            if symbol in v:
-                return k
+        if symbol in symbol_exchange_kvs:
+            return symbol_exchange_kvs[symbol]
         raise NotImplementedError
 
     def request_future_instrument(

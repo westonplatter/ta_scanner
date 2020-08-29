@@ -6,7 +6,7 @@ from ta_scanner.data.data import load_and_cache, db_data_fetch_between, aggregat
 from ta_scanner.data.ib import IbDataFetcher
 from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams
 from ta_scanner.signals import Signal
-from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames
+from ta_scanner.filters import FilterCumsum, FilterParams, FilterNames
 from ta_scanner.reports import BasicReport
 from ta_scanner.models import gen_engine
 
@@ -56,9 +56,9 @@ def run_cross(fast_sma: int, slow_sma: int):
     indicator.apply(df)
 
     filter_options = {
-        FilterOptions.win_points: 6,
-        FilterOptions.loss_points: 4,
-        FilterOptions.threshold_intervals: 30,
+        FilterParams.win_points: 6,
+        FilterParams.loss_points: 4,
+        FilterParams.threshold_intervals: 30,
     }
     sfilter = FilterCumsum(field_name, filter_options)
     results = sfilter.apply(df)

@@ -1,4 +1,5 @@
 from enum import Enum
+from loguru import logger
 from trading_calendars import get_calendar, TradingCalendar
 from typing import Dict
 

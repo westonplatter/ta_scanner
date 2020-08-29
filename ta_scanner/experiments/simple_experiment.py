@@ -1,28 +1,56 @@
-from abc import ABC
+import datetime
+import pandas as pd
+
+from ta_scanner.reports import BasicReport
 
 
-class BaseExperiment(ABC):
-    @staticmethod
-    def x() -> str:
-        return "x"
-
-
-class SimpleExperiment(BaseExperiment):
+class SimpleExperiment:
     def __init__(
-        self, df_train, df_test, indicator, indicator_params, sfilter, sfilter_params
+        self, df, field_name, train_sd, train_ed, test_sd, test_ed, indicator, sfilter
     ):
-        self.df_train = df_train
-        self.df_test = df_test
+        self.df = df
+        self.train_sd = train_sd
+        self.train_ed = train_ed
+        self.test_sd = test_sd
+        self.test_ed = test_ed
         self.indicator = indicator
-        self.indicator_params = indicator_params
         self.sfilter = sfilter
-        self.sfilter_params = sfilter_params
 
-    # the goal here is to
-    # - apply range of indicators configs to the train data
-    # - pick a couple of the bottom, middle, and top results
-    # - apply those to the test data
-    # - analyze how well they translate
+        self.field_name = field_name
+        self.x = None
+        self.y = None
+
+    def apply(self):
+        basic_report = BasicReport()
+
+        # train results
+        train_df = self.gen_train_df()
+        self.indicator.apply(train_df)
+        results = self.sfilter.apply(train_df)
+        train_report_results = basic_report.analyze(train_df, self.field_name)
+        self.x = train_report_results
+
+        # test results
+        test_df = self.gen_test_df()
+        self.indicator.apply(test_df)
+        self.sfilter.apply(test_df)
+        test_report_results = basic_report.analyze(test_df, self.field_name)
+        self.y = test_report_results
+
+    def results(self):
+        return (self.x, self.y)
+
+    def gen_test_df(self) -> pd.DataFrame:
+        __df = self.df.query("@self.test_sd <= ts and ts <= @self.test_ed").copy()
+        if len(__df.index) == 0:
+            raise Exception("no rows in test_df")
+        return __df
+
+    def gen_train_df(self) -> pd.DataFrame:
+        __df = self.df.query("@self.train_sd <= ts and ts <= @self.train_ed").copy()
+        if len(__df.index) == 0:
+            raise Exception("no rows in train_df")
+        return __df
 
 
 # indicator_sma_cross = IndicatorSmaCrossover()
@@ -42,9 +70,9 @@ class SimpleExperiment(BaseExperiment):
 # sfilter = FilterCumsum()
 
 # filter_options = {
-#     FilterOptions.win_points: 10,
-#     FilterOptions.loss_points: 3,
-#     FilterOptions.threshold_intervals: 20,
+#     FilterParams.win_points: 10,
+#     FilterParams.loss_points: 3,
+#     FilterParams.threshold_intervals: 20,
 # }
 
 # # generate results

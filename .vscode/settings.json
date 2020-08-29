@@ -3,6 +3,8 @@
         "ECBOT",
         "GLOBEX",
         "NYMEX",
+        "VWAP",
+        "fparams",
         "groupby",
         "insync",
         "iterrows",

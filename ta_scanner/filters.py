@@ -5,10 +5,11 @@ from loguru import logger
 from typing import Any, Dict, List, Optional, List
 
 
-class FilterOptions(Enum):
+class FilterParams(Enum):
     win_points = "win_points"
     loss_points = "loss_points"
     threshold_intervals = "threshold_intervals"
+    max_bars = "max_bars"
 
 
 class FilterNames(Enum):
@@ -20,12 +21,12 @@ class FilterException(Exception):
 
 
 class BaseFitler(metaclass=abc.ABCMeta):
-    def __init__(self, field_name: str, params: Dict[FilterOptions, Any]):
+    def __init__(self, field_name: str, params: Dict[FilterParams, Any]):
         self.field_name = field_name
         self.params = params
 
     def ensure_required_filter_options(
-        self, expected: List[FilterOptions], actual: Dict[FilterOptions, Any]
+        self, expected: List[FilterParams], actual: Dict[FilterParams, Any]
     ):
         for fo_key in expected:
             if fo_key not in actual:
@@ -38,9 +39,9 @@ class BaseFitler(metaclass=abc.ABCMeta):
 
 class FilterCumsum(BaseFitler):
     required_filter_options = [
-        FilterOptions.win_points,
-        FilterOptions.loss_points,
-        FilterOptions.threshold_intervals,
+        FilterParams.win_points,
+        FilterParams.loss_points,
+        FilterParams.threshold_intervals,
     ]
 
     def log_exit(self, action: str, diff, row):
@@ -55,7 +56,7 @@ class FilterCumsum(BaseFitler):
         query_signals = f"{self.field_name} != 0"
         query_results = df.query(query_signals)
 
-        threshold = self.params[FilterOptions.threshold_intervals]
+        threshold = self.params[FilterParams.threshold_intervals]
 
         for index, rs in query_results.iterrows():
             signal_direction = rs[self.field_name] * inverse
@@ -77,12 +78,12 @@ class FilterCumsum(BaseFitler):
                 rxi = rx.name
                 diff = (rx.close - rs.close) * signal_direction
 
-                if diff >= self.params[FilterOptions.win_points]:
+                if diff >= self.params[FilterParams.win_points]:
                     self.log_exit("Won", diff, df.iloc[df_index])
                     df.loc[rxi, self.field_name] = diff
                     break
 
-                if diff <= (self.params[FilterOptions.loss_points] * -1.0):
+                if diff <= (self.params[FilterParams.loss_points] * -1.0):
                     self.log_exit("Lost", diff, df.iloc[df_index])
                     df.loc[rxi, self.field_name] = diff
                     break
