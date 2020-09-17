@@ -11,6 +11,7 @@ class IndicatorParams(Enum):
     fast_sma = "fast_sma"
     slow_ema = "slow_ema"
     fast_ema = "fast_ema"
+    field_names = "field_names"
 
 
 def crossover(series, value=0):
@@ -77,3 +78,22 @@ class IndicatorEmaCrossover(BaseIndicator):
         df["fast_ema"] = ema(df.close, timeperiod=fast_ema)
         df[self.field_name] = crossover(df.fast_ema - df.slow_ema)
         return df
+
+
+class CombinedBindary(BaseIndicator):
+    def apply(self, df: pd.DataFrame) -> None:
+        self.ensure_required_filter_options([IndicatorParams.field_names], self.params)
+        field_names = self.params[IndicatorParams.field_names]
+
+        df[self.field_name] = 0
+        length = len(field_names)
+        field_name_values = [None for _ in range(length)]
+        
+        signals = df.loc[df[field_names].isin([1, -1]).any(1)][field_names]
+
+        for i, row in signals.iterrows():
+            for ii, fn in enumerate(field_names):
+                if row[fn] != 0:
+                    field_name_values[ii] = row[fn]
+            if abs(sum(filter(None, field_name_values))) == length:
+                df.loc[i, self.field_name] = field_name_values[0]
