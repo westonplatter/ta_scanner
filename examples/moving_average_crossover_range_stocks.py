@@ -24,33 +24,38 @@ df_original = load_and_cache(
     use_rth=True,
 )
 
-indicator_sma_cross = IndicatorSmaCrossover()
-
 # store signals in this field
 field_name = "moving_avg_cross"
+result_field_name = f"{field_name}_pnl"
 
 
 def run_cross(fast_sma: int, slow_sma: int):
     df = df_original.copy()
 
-    indicator_params = {
-        IndicatorParams.fast_sma: fast_sma,
-        IndicatorParams.slow_sma: slow_sma,
-    }
+    indicator_sma_cross = IndicatorSmaCrossover(
+        field_name=field_name,
+        params={
+            IndicatorParams.fast_sma: fast_sma,
+            IndicatorParams.slow_sma: slow_sma,
+        },
+    )
+
     # apply indicator to generate signals
-    indicator_sma_cross.apply(df, field_name, indicator_params)
+    indicator_sma_cross.apply(df)
 
     # initialize filter
-    sfilter = FilterCumsum()
-
-    filter_options = {
-        FilterOptions.win_points: 10,
-        FilterOptions.loss_points: 5,
-        FilterOptions.threshold_intervals: 30,
-    }
+    sfilter = FilterCumsum(
+        field_name=field_name,
+        result_field_name=result_field_name,
+        params={
+            FilterOptions.win_points: 10,
+            FilterOptions.loss_points: 5,
+            FilterOptions.threshold_intervals: 30,
+        },
+    )
 
     # generate results
-    results = sfilter.apply(df, field_name, filter_options)
+    results = sfilter.apply(df)
 
     # get aggregate pnl
     basic_report = BasicReport()

@@ -6,8 +6,8 @@ import datetime
 ib_data_fetcher = IbDataFetcher()
 
 symbol = "/MES"
-sd = datetime.date(2020, 8, 2)
-ed = datetime.date(2020, 8, 23)
+sd = datetime.date(2020, 9, 2)
+ed = datetime.date(2020, 9, 10)
 params = dict(start_date=sd, end_date=ed, use_rth=False, groupby_minutes=1,)
 
 df = load_and_cache(symbol, ib_data_fetcher, **params)

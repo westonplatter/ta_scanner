@@ -3,7 +3,7 @@ from loguru import logger
 
 import datetime
 from trading_calendars import get_calendar, TradingCalendar
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Optional
 
 from ib_insync import IB, Future, ContFuture, Stock, Contract
 from ib_insync import util as ib_insync_util
@@ -46,8 +46,11 @@ class IbDataFetcher(DataFetcherBase):
                 formatDate=2,  # return as UTC time
             )
             x = ib_insync_util.df(bars)
+            if x is None:
+                continue
             x["rth"] = rth
             dfs.append(x)
+
         df = pd.concat(dfs).drop_duplicates().reset_index(drop=True)
         return df
 

@@ -20,8 +20,11 @@ class FilterException(Exception):
 
 
 class BaseFitler(metaclass=abc.ABCMeta):
-    def __init__(self, field_name: str, params: Dict[FilterOptions, Any]):
+    def __init__(
+        self, field_name: str, result_field_name: str, params: Dict[FilterOptions, Any]
+    ):
         self.field_name = field_name
+        self.result_field_name = result_field_name
         self.params = params
 
     def ensure_required_filter_options(
@@ -70,7 +73,7 @@ class FilterCumsum(BaseFitler):
                     diff = (rx.close - rs.close) * signal_direction
                     self.log_exit("MaxTime", diff, rx)
                     rxi = rx.name
-                    df.loc[rxi, self.field_name] = diff
+                    df.loc[rxi, self.result_field_name] = diff
                     break
 
                 rx = df.iloc[df_index]
@@ -79,14 +82,14 @@ class FilterCumsum(BaseFitler):
 
                 if diff >= self.params[FilterOptions.win_points]:
                     self.log_exit("Won", diff, df.iloc[df_index])
-                    df.loc[rxi, self.field_name] = diff
+                    df.loc[rxi, self.result_field_name] = diff
                     break
 
                 if diff <= (self.params[FilterOptions.loss_points] * -1.0):
                     self.log_exit("Lost", diff, df.iloc[df_index])
-                    df.loc[rxi, self.field_name] = diff
+                    df.loc[rxi, self.result_field_name] = diff
                     break
 
                 if index_after == threshold - 1:
                     self.log_exit("MaxTime", diff, df.iloc[df_index])
-                    df.loc[rxi, self.field_name] = diff
+                    df.loc[rxi, self.result_field_name] = diff
