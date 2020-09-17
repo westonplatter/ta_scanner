@@ -73,13 +73,15 @@ filter_options = {
     FilterOptions.threshold_intervals: 20,
 }
 # initialize filter
-sfilter = FilterCumsum(field_name=composite_field_name, params=filter_options)
+
+result_field_name = f"{composite_field_name}_pnl"
+sfilter = FilterCumsum(field_name=composite_field_name, result_field_name=result_field_name, params=filter_options)
 
 # generate results
 results = sfilter.apply(df, -1)
 
 # analyze results
 basic_report = BasicReport()
-pnl, count, average, median = basic_report.analyze(df, composite_field_name)
+pnl, count, average, median = basic_report.analyze(df, result_field_name)
 
 logger.info(f"Final PnL = {pnl}")
