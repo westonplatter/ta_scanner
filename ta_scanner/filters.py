@@ -20,7 +20,9 @@ class FilterException(Exception):
 
 
 class BaseFitler(metaclass=abc.ABCMeta):
-    def __init__(self, field_name: str, result_field_name: str, params: Dict[FilterOptions, Any]):
+    def __init__(
+        self, field_name: str, result_field_name: str, params: Dict[FilterOptions, Any]
+    ):
         self.field_name = field_name
         self.result_field_name = result_field_name
         self.params = params

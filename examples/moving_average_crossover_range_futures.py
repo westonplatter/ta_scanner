@@ -43,6 +43,7 @@ df_original = query_data(engine, symbol, sd, ed, interval)
 
 # store signals in this field
 field_name = "moving_avg_cross"
+result_field_name = f"{field_name}_pnl"
 
 
 def run_cross(fast_sma: int, slow_sma: int):
@@ -60,7 +61,7 @@ def run_cross(fast_sma: int, slow_sma: int):
         FilterOptions.loss_points: 4,
         FilterOptions.threshold_intervals: 30,
     }
-    sfilter = FilterCumsum(field_name, filter_options)
+    sfilter = FilterCumsum(field_name, result_field_name, filter_options)
     results = sfilter.apply(df)
 
     # get aggregate pnl

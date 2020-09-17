@@ -42,7 +42,10 @@ filter_options = {
     FilterOptions.threshold_intervals: 20,
 }
 # initialize filter
-sfilter = FilterCumsum(field_name=field_name, params=filter_options)
+result_field_name = f"{field_name}_pnl"
+sfilter = FilterCumsum(
+    field_name=field_name, result_field_name=result_field_name, params=filter_options
+)
 
 # generate results
 results = sfilter.apply(df)

@@ -4,7 +4,11 @@ import sys
 
 from ta_scanner.data.data import load_and_cache, db_data_fetch_between, aggregate_bars
 from ta_scanner.data.ib import IbDataFetcher
-from ta_scanner.indicators import IndicatorSmaCrossover, IndicatorParams, CombinedBindary
+from ta_scanner.indicators import (
+    IndicatorSmaCrossover,
+    IndicatorParams,
+    CombinedBindary,
+)
 from ta_scanner.signals import Signal
 from ta_scanner.filters import FilterCumsum, FilterOptions, FilterNames
 from ta_scanner.reports import BasicReport
@@ -15,6 +19,7 @@ from ta_scanner.models import gen_engine
 # logger.add(sys.stderr, level="INFO")
 
 symbol = "/MES"
+
 
 def query_data(engine, symbol, sd, ed, groupby_minutes):
     df = db_data_fetch_between(engine, symbol, sd, ed)
@@ -32,30 +37,32 @@ df = query_data(engine, symbol, sd, ed, interval)
 
 # short duration
 short_duration_ma_cross = "short_duration_ma_cross"
-short_duration_fast_sma = 50
+short_duration_fast_sma = 30
 short_duration_slow_sma = 60
 
 # long duration
-multiplier = 8
+multiplier = 3
 long_duration_ma_cross = "long_duration_ma_cross"
 long_duration_fast_sma = short_duration_fast_sma * multiplier
 long_duration_slow_sma = short_duration_slow_sma * multiplier
 
 # init and apply short duration crosses
 short_duration_indicator = IndicatorSmaCrossover(
-    field_name=short_duration_ma_cross, params={
+    field_name=short_duration_ma_cross,
+    params={
         IndicatorParams.fast_sma: short_duration_fast_sma,
         IndicatorParams.slow_sma: short_duration_slow_sma,
-    }
+    },
 )
 short_duration_indicator.apply(df)
 
 # init and apply long duration crosses
 long_duration_indicator = IndicatorSmaCrossover(
-    field_name=long_duration_ma_cross, params={
+    field_name=long_duration_ma_cross,
+    params={
         IndicatorParams.fast_sma: long_duration_fast_sma,
         IndicatorParams.slow_sma: long_duration_slow_sma,
-    }
+    },
 )
 long_duration_indicator.apply(df)
 
@@ -63,7 +70,9 @@ long_duration_indicator.apply(df)
 composite_field_name = "composite"
 composite_indicator = CombinedBindary(
     field_name=composite_field_name,
-    params={IndicatorParams.field_names: [short_duration_ma_cross, long_duration_ma_cross]}
+    params={
+        IndicatorParams.field_names: [short_duration_ma_cross, long_duration_ma_cross]
+    },
 )
 composite_indicator.apply(df)
 
@@ -75,7 +84,11 @@ filter_options = {
 # initialize filter
 
 result_field_name = f"{composite_field_name}_pnl"
-sfilter = FilterCumsum(field_name=composite_field_name, result_field_name=result_field_name, params=filter_options)
+sfilter = FilterCumsum(
+    field_name=composite_field_name,
+    result_field_name=result_field_name,
+    params=filter_options,
+)
 
 # generate results
 results = sfilter.apply(df, -1)

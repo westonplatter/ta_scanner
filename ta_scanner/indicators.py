@@ -88,7 +88,7 @@ class CombinedBindary(BaseIndicator):
         df[self.field_name] = 0
         length = len(field_names)
         field_name_values = [None for _ in range(length)]
-        
+
         signals = df.loc[df[field_names].isin([1, -1]).any(1)][field_names]
 
         for i, row in signals.iterrows():
