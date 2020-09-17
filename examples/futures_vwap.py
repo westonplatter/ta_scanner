@@ -27,7 +27,7 @@ def query_data(engine, symbol, sd, ed, groupby_minutes):
     return df
 
 engine = gen_engine()
-sd, ed = datetime.date(2020, 8, 1), datetime.date(2020, 8, 23)
+sd, ed = datetime.date(2020, 8, 10), datetime.date(2020, 8, 26)
 interval = 1
 df = query_data(engine, symbol, sd, ed, interval)
 
@@ -40,10 +40,22 @@ indicator_vwap_trailing = VWAPTrailing(field_name=vwap_field_name, params={
 })
 indicator_vwap_trailing.apply(df)
 
-indicator_std_dev_trailing = StdDeviationTrailing(field_name="field_name", params={
+diff_field_name = "vwap_close_diff"
+df[diff_field_name] = df[vwap_field_name] - df.close
+
+std_dev_field_name = f"vwap_close_diff_std_trailing_{trailing_bars}"
+indicator_std_dev_trailing = StdDeviationTrailing(field_name=std_dev_field_name, params={
     IndicatorParams.trailing_bars: trailing_bars,
-    IndicatorParams.from_field_name: vwap_field_name,
+    IndicatorParams.from_field_name: diff_field_name,
 })
 indicator_std_dev_trailing.apply(df)
 
-df.to_csv("vwap_std_dev.csv")
+# pct_change_trailing_bars = 20
+# pct_change_field_name = f"pct_change_{pct_change_trailing_bars}"
+# indicator_pct_change_trailing = StdDeviationTrailing(field_name=pct_change_field_name, params={
+#     IndicatorParams.trailing_bars: pct_change_trailing_bars,
+#     IndicatorParams.from_field_name: vwap_field_name,
+# })
+# indicator_pct_change_trailing.apply(df)
+
+df.to_csv("vwap_diff_std_dev.csv")

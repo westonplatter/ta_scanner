@@ -61,7 +61,6 @@ class IndicatorSmaCrossover(BaseIndicator):
         df["slow_sma"] = sma(df.close, timeperiod=slow_sma)
         df["fast_sma"] = sma(df.close, timeperiod=fast_sma)
         df[self.field_name] = crossover(df.fast_sma - df.slow_sma)
-        return df
 
 
 class IndicatorEmaCrossover(BaseIndicator):
@@ -74,7 +73,6 @@ class IndicatorEmaCrossover(BaseIndicator):
         df["slow_ema"] = ema(df.close, timeperiod=slow_ema)
         df["fast_ema"] = ema(df.close, timeperiod=fast_ema)
         df[self.field_name] = crossover(df.fast_ema - df.slow_ema)
-        return df
 
 
 class VWAPTrailing(BaseIndicator):
@@ -91,13 +89,16 @@ class VWAPTrailing(BaseIndicator):
 
 class StdDeviationTrailing(BaseIndicator):
     def apply(self, df: pd.DataFrame) -> None:
-        self.ensure_required_filter_options([IndicatorParams.trailing_bars])
-        
+        self.ensure_required_filter_options([IndicatorParams.trailing_bars, IndicatorParams.from_field_name])
         trailing_bars: int = self.params[IndicatorParams.trailing_bars]
         from_field_name: str = self.params[IndicatorParams.from_field_name]
 
-        series = df[from_field_name]
+        df[self.field_name] = df[from_field_name].rolling(trailing_bars, min_periods=trailing_bars).std()
 
-        # todo - answer - what is the close price that's 2 std deviations away
+class PercentChangeTrailing(BaseIndicator):
+    def apply(self, df: pd.DataFrame) -> None:
+        self.ensure_required_filter_options([IndicatorParams.trailing_bars, IndicatorParams.trailing_bars])
+        trailing_bars: int = self.params[IndicatorParams.trailing_bars]
+        from_field_name: str = self.params[IndicatorParams.from_field_name]
 
-        import ipdb; ipdb.set_trace()
+        df[self.field_name] = df[from_field_name].pct_change(periods=trailing_bars)
