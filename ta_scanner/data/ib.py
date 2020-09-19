@@ -51,6 +51,8 @@ class IbDataFetcher(DataFetcherBase):
             x["rth"] = rth
             dfs.append(x)
 
+        if dfs == []:
+            return None
         df = pd.concat(dfs).drop_duplicates().reset_index(drop=True)
         return df
 
@@ -67,12 +69,12 @@ class IbDataFetcher(DataFetcherBase):
         )
 
     def select_exchange_by_symbol(self, symbol):
-        d = {
+        kvs = {
             Exchange.GLOBEX: [
                 # fmt: off
                 # equities
                 "/ES", "/MES",
-                "/NQ", "/MNQ"
+                "/NQ", "/MNQ",
                 # currencies
                 "/M6A", "/M6B", "/M6E",
                 # interest rates
@@ -83,7 +85,7 @@ class IbDataFetcher(DataFetcherBase):
             Exchange.NYMEX: ["/GC", "/MGC", "/CL", "/QM",],
         }
 
-        for k, v in d.items():
+        for k, v in kvs.items():
             if symbol in v:
                 return k
         raise NotImplementedError

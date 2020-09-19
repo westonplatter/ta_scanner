@@ -74,6 +74,9 @@ def load_and_cache(
         if True:
             df = data_fetcher.request_instrument(instrument_symbol, dt, what_to_show)
 
+            if df is None:
+                continue
+
             df["symbol"] = instrument_symbol
             transform_rename_df_columns(df)
             # convert time from UTC to US/Eastern
