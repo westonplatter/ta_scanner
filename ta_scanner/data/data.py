@@ -5,9 +5,10 @@ import os
 from loguru import logger
 from psycopg2 import sql
 
-# from datetime import datetime, timedelta, timezone, date
 import datetime
 import pytz
+from psycopg2.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError
 from trading_calendars import get_calendar, TradingCalendar
 from typing import Optional, Dict, Any, List, Tuple
 
@@ -223,15 +224,12 @@ def db_insert_df_conflict_on_do_nothing(
     cols = __gen_cols(df)
     values = __gen_values(df)
 
-    query_template = """
-        INSERT INTO {table_name} ({cols})
-        VALUES ({values});
-    """
+    query_template = "INSERT INTO {table_name} ({cols}) VALUES ({values});"
 
     query = sql.SQL(query_template).format(
         table_name=sql.Identifier(table_name),
-        cols=sql.SQL(", ").join(map(sql.Identifier, cols)),
-        values=sql.SQL(", ").join(sql.Placeholder() * len(cols)),
+        cols=sql.SQL(', ').join(map(sql.Identifier, cols)),
+        values=sql.SQL(', ').join(sql.Placeholder() * len(cols)),
     )
 
     with engine.connect() as con:
@@ -239,9 +237,13 @@ def db_insert_df_conflict_on_do_nothing(
             for v in values:
                 try:
                     cur.execute(query, v)
+                    con.connection.commit()
+                except UniqueViolation as e:
+                    cur.execute("rollback")
+                    con.connection.commit()
                 except Exception as e:
-                    pass
-        con.connection.commit()
+                    cur.execute("rollback")
+                    con.connection.commit()
 
 
 def __gen_values(df: pd.DataFrame) -> List[Tuple[str]]:
