@@ -8,7 +8,7 @@ ib_data_fetcher = IbDataFetcher()
 # symbols = ["/MES", "/MNQ", "/MGC"]
 symbols = ["/MES"]
 
-get_last_n_days = 1
+get_last_n_days = 5
 sd = datetime.date.today() - datetime.timedelta(days=get_last_n_days)
 ed = datetime.date.today() - datetime.timedelta(days=1)
 
@@ -16,5 +16,4 @@ for symbol in symbols:
     params = dict(start_date=sd, end_date=ed, use_rth=False, groupby_minutes=1,)
     df = load_and_cache(symbol, ib_data_fetcher, **params)
 
-
-import ipdb; ipdb.set_trace()
+logger.info("Done")
