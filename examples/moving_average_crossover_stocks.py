@@ -24,7 +24,10 @@ result_field_name = f"{field_name}_pnl"
 
 indicator_sma_cross = IndicatorSmaCrossover(
     field_name=field_name,
-    params={IndicatorParams.fast_sma: 20, IndicatorParams.slow_sma: 50,},
+    params={
+        IndicatorParams.fast_sma: 20,
+        IndicatorParams.slow_sma: 50,
+    },
 )
 
 # apply indicator to generate signals

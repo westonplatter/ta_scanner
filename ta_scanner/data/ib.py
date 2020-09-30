@@ -82,7 +82,12 @@ class IbDataFetcher(DataFetcherBase):
                 # fmt: on
             ],
             Exchange.ECBOT: ["/ZC", "/YC", "/ZS", "/YK", "/ZW", "/YW"],
-            Exchange.NYMEX: ["/GC", "/MGC", "/CL", "/QM",],
+            Exchange.NYMEX: [
+                "/GC",
+                "/MGC",
+                "/CL",
+                "/QM",
+            ],
         }
 
         for k, v in kvs.items():
@@ -112,7 +117,11 @@ class IbDataFetcher(DataFetcherBase):
         )
 
     def request_instrument(
-        self, symbol: str, dt, what_to_show, contract_date: Optional[str] = None,
+        self,
+        symbol: str,
+        dt,
+        what_to_show,
+        contract_date: Optional[str] = None,
     ):
         if "/" in symbol:
             return self.request_future_instrument(

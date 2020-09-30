@@ -89,5 +89,6 @@ venv.bak/
 
 *.egg-info
 *.csv
+*.txt
 
 results/
