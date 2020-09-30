@@ -228,8 +228,8 @@ def db_insert_df_conflict_on_do_nothing(
 
     query = sql.SQL(query_template).format(
         table_name=sql.Identifier(table_name),
-        cols=sql.SQL(", ").join(map(sql.Identifier, cols)),
-        values=sql.SQL(", ").join(sql.Placeholder() * len(cols)),
+        cols=sql.SQL(', ').join(map(sql.Identifier, cols)),
+        values=sql.SQL(', ').join(sql.Placeholder() * len(cols)),
     )
 
     with engine.connect() as con:
