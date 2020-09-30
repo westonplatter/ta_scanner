@@ -24,4 +24,6 @@ def query_data(engine, symbol, sd, ed, groupby_minutes):
 
 df = query_data(engine, symbol, sd, ed, groupby_minutes)
 
-import ipdb; ipdb.set_trace()
+import ipdb
+
+ipdb.set_trace()

@@ -36,12 +36,12 @@ class CsvFileFetcher(DataFetcherBase):
             " Volume": "volume",
             " Bid Volume": "bid_volume",
             " Ask Volume": "ask_volume",
-            " Close": "cumulative_delta_bars"
+            " Close": "cumulative_delta_bars",
         }
         ddf = ddf.rename(columns=rename_columns)
-        ddf['ts'] = pd.to_datetime(ddf['date'].map(str) + ddf['time'].map(str))
+        ddf["ts"] = pd.to_datetime(ddf["date"].map(str) + ddf["time"].map(str))
         ddf.set_index("ts", drop=False, inplace=True)
-        ddf = ddf.tz_localize('US/Mountain')
+        ddf = ddf.tz_localize("US/Mountain")
         return ddf
 
     def request_instrument(self):

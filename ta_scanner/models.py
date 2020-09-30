@@ -18,7 +18,9 @@ NUMERIC_OPTIONS = dict(precision=8, scale=2, decimal_return_scale=None, asdecima
 
 
 def gen_engine():
-    connection_string: str = "postgresql://ta_scanner:ta_scanner@localhost:65432/ta_scanner"
+    connection_string: str = (
+        "postgresql://ta_scanner:ta_scanner@localhost:65432/ta_scanner"
+    )
     engine = create_engine(connection_string, convert_unicode=True)
     return engine
 
