@@ -1,10 +1,10 @@
-name: ta_scanner
+name: myenv
 
 channels:
     - default
 
 dependencies:
-    - python=3.7
+    - python=3.8
     - click
     - sqlalchemy
     - pandas >= 1.0.0
@@ -12,16 +12,14 @@ dependencies:
     - numpy
     - requests
     - pytz
-    - matplotlib
+    # - matplotlib
     # test resources
-    - pytest
+    # - pytest
     - pip
     - pip:
-        - twine
+        # - twine
         - ipdb
-        - TA-Lib
         - loguru
         - ib_insync
-        - trading_calendars
-        - "--editable ."
+        # - trading_calendars
         # testing resources
